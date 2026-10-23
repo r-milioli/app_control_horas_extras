@@ -1,0 +1,29 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Segredos locais (nunca commitar)
+.env
+.env.*
+*.pem
+secrets/
+credentials.json
+token.json
+
+# Node / Electron (futuro)
+node_modules/
+dist/
+out/
+release/
+*.log
+npm-debug.log*
+
+# Apps Script clasp (se usar depois)
+.clasp.json

@@ -1,0 +1,4 @@
+id,nome,comandante_email,ativa
+CENTRAL,Setor Central,admin.central@exemplo.com,SIM
+1BPM,1º BPM · Centro,comandante.1bpm@exemplo.com,SIM
+12BPM,12º BPM · Niterói,,SIM

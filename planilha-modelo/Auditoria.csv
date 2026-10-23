@@ -1,0 +1,2 @@
+timestamp,email,unidade_id,acao,objeto_id,resultado
+2026-10-23T14:00:00.000Z,admin.central@exemplo.com,CENTRAL,CRIAR_USUARIO,joao.santos@exemplo.com,OK

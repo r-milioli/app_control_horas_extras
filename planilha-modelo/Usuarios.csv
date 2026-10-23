@@ -1,0 +1,4 @@
+email,nome,matricula,unidade_id,perfis,ativo,pin_hash,criado_em,ultimo_acesso
+admin.central@exemplo.com,Administrador Central,000001,CENTRAL,"ADMIN,POLICIAL",SIM,,2026-10-23T12:00:00.000Z,
+comandante.1bpm@exemplo.com,Mariana Costa Lima,087221,1BPM,"COMANDANTE,POLICIAL",SIM,,2026-10-23T12:00:00.000Z,
+joao.santos@exemplo.com,João Pedro Santos,098341,1BPM,POLICIAL,SIM,,2026-10-23T12:00:00.000Z,

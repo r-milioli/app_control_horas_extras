@@ -1,0 +1,3 @@
+id,tipo,ref_id,matricula,nome,unidade_id,data,minutos,motivo,criado_por,criado_em,recebido_em,atualizado_em,status,decidido_por,decidido_em,motivo_rejeicao
+a1b2c3d4-e5f6-7890-abcd-ef1234567890,HORA_EXTRA,,098341,João Pedro Santos,1BPM,2026-10-22,180,Apoio operacional em evento,joao.santos@exemplo.com,2026-10-22T18:00:00.000Z,2026-10-22T18:05:00.000Z,2026-10-22T19:00:00.000Z,APROVADO,comandante.1bpm@exemplo.com,2026-10-22T19:00:00.000Z,
+b2c3d4e5-f6a7-8901-bcde-f12345678901,COMPENSACAO,,098341,João Pedro Santos,1BPM,2026-10-23,60,Abatimento de saldo,joao.santos@exemplo.com,2026-10-23T12:00:00.000Z,2026-10-23T12:01:00.000Z,2026-10-23T12:01:00.000Z,AGUARDANDO_APROVACAO,,,
