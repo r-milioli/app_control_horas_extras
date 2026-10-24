@@ -28,6 +28,31 @@ npm run dev
 
 A URL padrão já aponta para o Web App em produção. Variável: `API_URL`.
 
+## Sair / desativar neste PC
+
+No app: botão **Sair deste computador** (barra lateral). Apaga o token local.
+Para voltar a usar neste PC, o admin precisa emitir um **novo código de ativação**.
+
+## Criar usuários e unidades (painel Admin)
+
+Com perfil **ADMIN** no app (online):
+
+1. Menu → **Administração → Usuários e unidades**
+2. **Nova unidade** (se precisar)
+3. **Cadastrar usuário** (Policial / Comandante / Admin)
+4. Guarde o **código de ativação** exibido e entregue ao usuário (72h, uso único)
+
+Outro PC do mesmo usuário: botão **Novo código** na lista.
+
+### PIN × código de ativação
+
+| | Código de ativação | PIN |
+|---|---|---|
+| Para quê | Ligar **este computador** ao usuário | Aprovar/rejeitar (só Comandante/Admin) |
+| Quem usa | Todos os perfis, 1× por dispositivo | Só COMANDANTE e ADMIN |
+| Policial precisa? | Sim (código) | **Não** |
+| Por máquina? | Sim — cada PC pede um código novo | **Não** — é do usuário (conta), definido 1× |
+
 ## Como testar o corte vertical (policial)
 
 ### 1. Emitir código de ativação

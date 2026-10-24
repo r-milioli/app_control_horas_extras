@@ -150,3 +150,54 @@ function gerarCodigoManual() {
   Logger.log('Código para ' + email + ': ' + out.codigo + ' (expira ' + out.expira_em + ')');
   return out.codigo;
 }
+
+/**
+ * Cadastro rápido de usuário pelo editor (enquanto o painel Admin do app não existe).
+ * 1) Edite os campos abaixo
+ * 2) Execute cadastrarUsuarioManual()
+ * 3) Copie o código do log e entregue ao usuário
+ *
+ * perfis: "POLICIAL" | "COMANDANTE" | "ADMIN" | "COMANDANTE,POLICIAL" etc.
+ * unidade_id: deve existir na aba Unidades (ex.: CENTRAL)
+ */
+function cadastrarUsuarioManual() {
+  var email = 'policial@exemplo.com'; // <<< edite
+  var nome = 'Nome do Policial';
+  var matricula = '123456';
+  var unidadeId = 'CENTRAL';
+  var perfis = 'POLICIAL'; // sem PIN; use COMANDANTE ou ADMIN se for aprovar
+
+  email = normalizarEmail_(email);
+  if (!email || email.indexOf('exemplo.com') >= 0) {
+    throw new Error('Edite o e-mail em cadastrarUsuarioManual() antes de rodar.');
+  }
+  if (buscarUsuario_(email)) {
+    throw new Error('E-mail já cadastrado. Use gerarCodigoManual() para novo código.');
+  }
+  var unidade = encontrarLinha_(ABAS.UNIDADES, COL.UNIDADES, function (u) {
+    return u.id === unidadeId;
+  });
+  if (!unidade) {
+    throw new Error('Unidade não encontrada: ' + unidadeId + '. Crie na aba Unidades.');
+  }
+
+  appendLinha_(ABAS.USUARIOS, COL.USUARIOS, {
+    email: email,
+    nome: String(nome).trim(),
+    matricula: String(matricula).trim(),
+    unidade_id: unidadeId,
+    perfis: String(perfis).trim().toUpperCase(),
+    ativo: 'SIM',
+    pin_hash: '',
+    criado_em: agoraIso_(),
+    ultimo_acesso: ''
+  });
+
+  var out = emitirCodigoAtivacao_(email);
+  Logger.log('=== USUÁRIO CADASTRADO ===');
+  Logger.log('E-mail: ' + email);
+  Logger.log('Perfis: ' + perfis);
+  Logger.log('Código de ativação (72h, uso único): ' + out.codigo);
+  Logger.log('Expira: ' + out.expira_em);
+  return out.codigo;
+}

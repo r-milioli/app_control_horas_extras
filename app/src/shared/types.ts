@@ -121,3 +121,36 @@ export interface HealthResult {
   }
   mensagem?: string
 }
+
+export interface AdminUsuario {
+  email: string
+  nome: string
+  matricula: string
+  unidade_id: string
+  perfis: string[]
+  ativo: string
+  tem_pin: boolean
+  criado_em: string
+  ultimo_acesso: string
+}
+
+export interface AdminUnidade {
+  id: string
+  nome: string
+  comandante_email: string
+  ativa: string
+}
+
+export interface CriarUsuarioInput {
+  email: string
+  nome: string
+  matricula: string
+  unidade_id: string
+  perfis: string[]
+}
+
+export interface CriarUnidadeInput {
+  id: string
+  nome: string
+  comandante_email?: string
+}

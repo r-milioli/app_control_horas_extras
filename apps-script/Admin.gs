@@ -159,6 +159,8 @@ function acaoAdminUsuarios_(req) {
       }) };
     case 'criar_unidade':
       return adminCriarUnidade_(auth, p);
+    case 'atualizar_unidade':
+      return adminAtualizarUnidade_(auth, p);
     case 'criar_usuario':
       return adminCriarUsuario_(auth, p);
     case 'atualizar_usuario':
@@ -210,6 +212,35 @@ function adminCriarUnidade_(auth, p) {
   });
   auditar_(auth.email, auth.usuario.unidade_id, 'CRIAR_UNIDADE', id, 'OK');
   return { id: id, nome: nome };
+}
+
+function adminAtualizarUnidade_(auth, p) {
+  var id = String(p.id || '').trim().toUpperCase();
+  if (!id) {
+    throw ApiError_(ERROS.VALIDACAO, 'Informe o id da unidade.');
+  }
+  var existe = encontrarLinha_(ABAS.UNIDADES, COL.UNIDADES, function (u) {
+    return u.id === id;
+  });
+  if (!existe) {
+    throw ApiError_(ERROS.VALIDACAO, 'Unidade não encontrada.');
+  }
+  var patch = {};
+  if (p.nome) patch.nome = String(p.nome).trim();
+  if (Object.prototype.hasOwnProperty.call(p, 'comandante_email')) {
+    patch.comandante_email = normalizarEmail_(p.comandante_email || '');
+  }
+  if (p.ativa) {
+    patch.ativa = String(p.ativa).toUpperCase() === 'SIM' ? 'SIM' : 'NAO';
+  }
+  if (Object.keys(patch).length) {
+    atualizarLinhaPorId_(ABAS.UNIDADES, COL.UNIDADES, 'id', id, patch);
+  }
+  auditar_(auth.email, auth.usuario.unidade_id, 'ATUALIZAR_UNIDADE', id, 'OK');
+  var row = encontrarLinha_(ABAS.UNIDADES, COL.UNIDADES, function (u) {
+    return u.id === id;
+  });
+  return { unidade: row ? row.row : { id: id } };
 }
 
 function adminCriarUsuario_(auth, p) {
@@ -281,9 +312,25 @@ function adminAtualizarUsuario_(auth, p) {
     }
     patch.matricula = String(p.matricula).trim();
   }
+  if (p.ativo) {
+    var novoAtivo = String(p.ativo).toUpperCase() === 'SIM' ? 'SIM' : 'NAO';
+    if (email === auth.email && novoAtivo === 'NAO') {
+      throw ApiError_(ERROS.VALIDACAO, 'Você não pode desativar a si mesmo.');
+    }
+    patch.ativo = novoAtivo;
+  }
 
   if (Object.keys(patch).length) {
     atualizarLinhaPorId_(ABAS.USUARIOS, COL.USUARIOS, 'email', email, patch);
+  }
+  // Se desativou via atualizar, revoga dispositivos (mesmo efeito de desativar_usuario)
+  if (patch.ativo === 'NAO') {
+    var dispositivos = lerAba_(ABAS.DISPOSITIVOS, COL.DISPOSITIVOS);
+    dispositivos.forEach(function (d) {
+      if (normalizarEmail_(d.email) === email && d.ativo === 'SIM') {
+        atualizarLinhaPorId_(ABAS.DISPOSITIVOS, COL.DISPOSITIVOS, 'id', d.id, { ativo: 'NAO' });
+      }
+    });
   }
   auditar_(auth.email, auth.usuario.unidade_id, 'ATUALIZAR_USUARIO', email, 'OK');
   return { usuario: sanitizarUsuario_(buscarUsuario_(email)) };

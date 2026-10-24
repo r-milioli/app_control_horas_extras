@@ -1,11 +1,26 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AppState, LancamentoLocal } from '../../shared/types'
 import Ativacao from './pages/Ativacao'
 import Home from './pages/Home'
-import NovoLancamento from './pages/NovoLancamento'
 import MeusRegistros from './pages/MeusRegistros'
+import AdminUsuarios from './pages/AdminUsuarios'
+import ModalNovoLancamento from './components/ModalNovoLancamento'
+import {
+  IconLogout,
+  IconOverview,
+  IconRecords,
+  IconSync,
+  IconTheme,
+  IconUsers
+} from './components/Icons'
+import { iniciaisNome, parsePerfis, rotuloPerfil, type PerfilApp } from './lib/roles'
 
-type Page = 'home' | 'novo' | 'registros'
+type Page = 'home' | 'registros' | 'admin'
+
+const CREST_URL =
+  'https://commons.wikimedia.org/wiki/Special:FilePath/Bras%C3%A3o_da_Pol%C3%ADcia_Militar_do_Estado_do_Rio_de_Janeiro_-_PMERJ_-_Variante_Azul.png'
+
+const THEME_KEY = 'controle-horas-theme'
 
 export default function App() {
   const [booting, setBooting] = useState(true)
@@ -14,42 +29,67 @@ export default function App() {
   const [lancamentos, setLancamentos] = useState<LancamentoLocal[]>([])
   const [syncing, setSyncing] = useState(false)
   const [toast, setToast] = useState('')
+  const [modalNovo, setModalNovo] = useState(false)
+  const [dark, setDark] = useState(() => {
+    try {
+      return localStorage.getItem(THEME_KEY) === 'dark'
+    } catch {
+      return false
+    }
+  })
+  const [perfilAtivo, setPerfilAtivo] = useState<PerfilApp>('POLICIAL')
 
   const notify = useCallback((msg: string) => {
     setToast(msg)
     window.setTimeout(() => setToast(''), 3500)
   }, [])
 
-  const refresh = useCallback(async (opts?: { autoSync?: boolean }) => {
-    const s = await window.api.getState()
-    setState(s)
-    if (s.activated) {
-      const list = await window.api.listarLancamentos()
-      setLancamentos(list)
-      if (opts?.autoSync && s.online) {
-        setSyncing(true)
-        try {
-          const result = await window.api.sync()
-          setState(result.state)
-          const list2 = await window.api.listarLancamentos()
-          setLancamentos(list2)
-          if (result.enviados > 0 || result.mudancas > 0) {
-            notify(result.mensagem)
+  useEffect(() => {
+    document.body.classList.toggle('dark', dark)
+    try {
+      localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light')
+    } catch {
+      /* ignore */
+    }
+  }, [dark])
+
+  const refresh = useCallback(
+    async (opts?: { autoSync?: boolean }) => {
+      const s = await window.api.getState()
+      setState(s)
+      if (s.activated) {
+        const perfis = parsePerfis(s.usuario?.perfis)
+        setPerfilAtivo((atual) => (perfis.includes(atual) ? atual : perfis[0]))
+        const list = await window.api.listarLancamentos()
+        setLancamentos(list)
+        if (opts?.autoSync && s.online) {
+          setSyncing(true)
+          try {
+            const result = await window.api.sync()
+            setState(result.state)
+            const list2 = await window.api.listarLancamentos()
+            setLancamentos(list2)
+            if (result.enviados > 0 || result.mudancas > 0) {
+              notify(result.mensagem)
+            }
+            if (result.clockSkewWarning) {
+              notify('Atenção: o relógio deste computador parece incorreto.')
+            }
+          } finally {
+            setSyncing(false)
           }
-          if (result.clockSkewWarning) {
-            notify('Atenção: o relógio deste computador parece incorreto.')
-          }
-        } finally {
-          setSyncing(false)
         }
       }
-    }
-    setBooting(false)
-  }, [notify])
+      setBooting(false)
+    },
+    [notify]
+  )
 
   useEffect(() => {
     void refresh({ autoSync: true })
   }, [refresh])
+
+  const perfis = useMemo(() => parsePerfis(state?.usuario?.perfis), [state?.usuario?.perfis])
 
   async function handleSync() {
     setSyncing(true)
@@ -61,6 +101,19 @@ export default function App() {
     } finally {
       setSyncing(false)
     }
+  }
+
+  async function handleLogout() {
+    const ok = window.confirm(
+      'Sair deste computador?\n\nO token deste aparelho será apagado. Para usar de novo, será preciso um novo código de ativação do administrador.'
+    )
+    if (!ok) return
+    await window.api.logout()
+    setLancamentos([])
+    setPage('home')
+    setModalNovo(false)
+    notify('Você saiu deste computador.')
+    await refresh()
   }
 
   if (booting || !state) {
@@ -83,34 +136,74 @@ export default function App() {
 
   const titles: Record<Page, string> = {
     home: 'Visão geral',
-    novo: 'Novo lançamento',
-    registros: 'Meus registros'
+    registros: 'Lançamentos',
+    admin: 'Usuários e unidades'
   }
+
+  const u = state.usuario
+  const isAdmin = perfis.includes('ADMIN')
+  const abrirNovo = () => setModalNovo(true)
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand-text" style={{ padding: '2px 10px 10px' }}>
-          <div className="brand-title">CONTROLE DE HORAS</div>
-          <div className="brand-sub">PMERJ · Sistema interno</div>
+        <div className="brand">
+          <img className="crest" alt="Brasão da PMERJ" src={CREST_URL} />
+          <div className="brand-text">
+            <div className="brand-title">CONTROLE DE HORAS</div>
+            <div className="brand-sub">PMERJ · Sistema interno</div>
+          </div>
         </div>
+
         <div className="nav-label">Principal</div>
         <nav className="nav">
-          <button className={page === 'home' ? 'active' : ''} onClick={() => setPage('home')}>
-            <span>Início</span>
+          <button
+            type="button"
+            className={page === 'home' ? 'active' : ''}
+            onClick={() => setPage('home')}
+          >
+            <IconOverview />
+            <span>Visão geral</span>
           </button>
-          <button className={page === 'novo' ? 'active' : ''} onClick={() => setPage('novo')}>
-            <span>Novo lançamento</span>
-          </button>
-          <button className={page === 'registros' ? 'active' : ''} onClick={() => setPage('registros')}>
-            <span>Meus registros</span>
+          <button
+            type="button"
+            className={page === 'registros' ? 'active' : ''}
+            onClick={() => setPage('registros')}
+          >
+            <IconRecords />
+            <span>Lançamentos</span>
             {state.pendentesEnvio > 0 && <span className="count">{state.pendentesEnvio}</span>}
           </button>
         </nav>
+
+        {isAdmin && (
+          <>
+            <div className="nav-label">Administração</div>
+            <nav className="nav">
+              <button
+                type="button"
+                className={page === 'admin' ? 'active' : ''}
+                onClick={() => setPage('admin')}
+              >
+                <IconUsers />
+                <span>Usuários e unidades</span>
+              </button>
+            </nav>
+          </>
+        )}
+
         <div className="sidebar-bottom">
-          <strong>{state.usuario?.nome || 'Usuário'}</strong>
-          <small>{state.usuario?.email}</small>
-          <small style={{ marginTop: 8 }}>Unidade {state.usuario?.unidade_id || '—'}</small>
+          <div className="profile-mini">
+            <div className="avatar">{iniciaisNome(u?.nome)}</div>
+            <div>
+              <strong title={u?.nome}>{u?.nome || 'Usuário'}</strong>
+              <small>{rotuloPerfil(perfilAtivo)}</small>
+            </div>
+          </div>
+          <button type="button" className="logout-btn" onClick={() => void handleLogout()}>
+            <IconLogout />
+            <span>Sair</span>
+          </button>
         </div>
       </aside>
 
@@ -126,13 +219,37 @@ export default function App() {
               <span>{state.online ? 'Conectado' : 'Sem internet'}</span>
             </div>
             <button
-              className="btn btn-secondary"
-              style={{ padding: '9px 12px' }}
+              type="button"
+              className={`icon-btn ${syncing ? 'spinning' : ''}`}
+              title="Sincronizar"
+              aria-label="Sincronizar"
               onClick={() => void handleSync()}
               disabled={syncing || !state.online}
             >
-              {syncing ? 'Sincronizando…' : 'Sincronizar'}
+              <IconSync />
             </button>
+            <button
+              type="button"
+              className="icon-btn"
+              title={dark ? 'Modo claro' : 'Modo escuro'}
+              aria-label="Alternar tema"
+              onClick={() => setDark((v) => !v)}
+            >
+              <IconTheme />
+            </button>
+            <select
+              className="role-select"
+              aria-label="Perfil ativo"
+              value={perfilAtivo}
+              onChange={(e) => setPerfilAtivo(e.target.value as PerfilApp)}
+              title="Seu perfil neste dispositivo"
+            >
+              {perfis.map((p) => (
+                <option key={p} value={p}>
+                  {rotuloPerfil(p)}
+                </option>
+              ))}
+            </select>
           </div>
         </header>
 
@@ -143,17 +260,8 @@ export default function App() {
               recentes={lancamentos}
               syncing={syncing}
               onSync={() => void handleSync()}
-              onNovo={() => setPage('novo')}
+              onNovo={abrirNovo}
               onVerTodos={() => setPage('registros')}
-            />
-          )}
-          {page === 'novo' && (
-            <NovoLancamento
-              notify={notify}
-              onCancel={() => setPage('home')}
-              onSaved={() => {
-                void refresh().then(() => setPage('registros'))
-              }}
             />
           )}
           {page === 'registros' && (
@@ -162,11 +270,23 @@ export default function App() {
               online={state.online}
               notify={notify}
               onRefresh={() => void refresh()}
-              onNovo={() => setPage('novo')}
+              onNovo={abrirNovo}
             />
+          )}
+          {page === 'admin' && isAdmin && (
+            <AdminUsuarios online={state.online} notify={notify} />
           )}
         </div>
       </div>
+
+      <ModalNovoLancamento
+        open={modalNovo}
+        onClose={() => setModalNovo(false)}
+        notify={notify}
+        onSaved={() => {
+          void refresh().then(() => setPage('registros'))
+        }}
+      />
 
       {toast && <div className="toast">{toast}</div>}
     </div>

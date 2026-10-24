@@ -180,4 +180,26 @@ export function registerIpc(): void {
 
   ipcMain.handle('app:machineName', async () => hostname() || 'Windows')
   ipcMain.handle('app:version', async () => app.getVersion())
+
+  ipcMain.handle('admin:op', async (_e, op: string, payload: Record<string, unknown> = {}) => {
+    const creds = lerCredenciais()
+    if (!creds) {
+      return { ok: false as const, mensagem: 'Dispositivo não ativado.' }
+    }
+    try {
+      const dados = await apiPost<Record<string, unknown>>('admin_usuarios', creds.email, creds.token, {
+        op,
+        ...payload
+      })
+      return { ok: true as const, dados }
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        return { ok: false as const, mensagem: mensagemErroApi(err.codigo, err.message) }
+      }
+      return {
+        ok: false as const,
+        mensagem: err instanceof Error ? err.message : 'Falha na operação administrativa.'
+      }
+    }
+  })
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { LancamentoLocal } from '../../../shared/types'
 import {
   classeStatus,
@@ -8,6 +8,7 @@ import {
   rotuloStatus,
   rotuloTipo
 } from '../lib/format'
+import { IconPlus } from '../components/Icons'
 
 interface Props {
   itens: LancamentoLocal[]
@@ -19,9 +20,25 @@ interface Props {
 
 export default function MeusRegistros({ itens, online, onRefresh, notify, onNovo }: Props) {
   const [filtro, setFiltro] = useState('')
+  const [busca, setBusca] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const filtrados = itens.filter((r) => !filtro || r.status === filtro)
+  const filtrados = useMemo(() => {
+    return itens.filter((r) => {
+      if (filtro && r.status !== filtro) return false
+      if (busca) {
+        const q = busca.toLowerCase()
+        if (
+          !r.motivo.toLowerCase().includes(q) &&
+          !rotuloTipo(r.tipo).toLowerCase().includes(q) &&
+          !formatarDataBr(r.data).includes(q)
+        ) {
+          return false
+        }
+      }
+      return true
+    })
+  }, [itens, filtro, busca])
 
   async function finalizar(id: string) {
     setBusyId(id)
@@ -57,32 +74,41 @@ export default function MeusRegistros({ itens, online, onRefresh, notify, onNovo
   }
 
   return (
-    <div>
+    <div className="page">
       <div className="page-head">
         <div>
           <div className="eyebrow">Operação</div>
-          <h1>Meus registros</h1>
-          <p>Consulte o histórico deste dispositivo. Registros enviados não podem ser editados.</p>
+          <h1>Lançamentos</h1>
+          <p>Consulte os registros e acompanhe o histórico de cada movimentação.</p>
         </div>
         <div className="actions">
-          <button className="btn btn-primary" onClick={onNovo}>
+          <button type="button" className="btn btn-primary" onClick={onNovo}>
+            <IconPlus size={16} />
             Novo lançamento
           </button>
         </div>
       </div>
 
-      <article className="panel">
+      <article className="panel table-panel">
         <div className="panel-head">
           <div>
             <h2>Todos os lançamentos</h2>
-            <p>{filtrados.length} registro(s)</p>
+            <p>Os registros enviados não podem ser editados ou apagados.</p>
           </div>
-          <select
-            className="filter"
-            style={{ padding: '10px 11px', borderRadius: 9, border: '1px solid var(--line)' }}
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-          >
+        </div>
+        <div className="table-tools">
+          <div className="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m16 16 4 4" />
+            </svg>
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar registro..."
+            />
+          </div>
+          <select className="filter" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
             <option value="">Todos os status</option>
             <option value="RASCUNHO">Rascunho local</option>
             <option value="PENDENTE_ENVIO">Pendente de envio</option>
@@ -115,7 +141,7 @@ export default function MeusRegistros({ itens, online, onRefresh, notify, onNovo
                     </td>
                     <td>{formatarDataBr(r.data)}</td>
                     <td>{formatarHoras(r.minutos)}</td>
-                    <td style={{ maxWidth: 240, whiteSpace: 'normal' }}>
+                    <td style={{ maxWidth: 280, whiteSpace: 'normal' }}>
                       {r.motivo}
                       {r.status === 'REJEITADO' && r.motivo_rejeicao && (
                         <span className="motivo-rejeicao">Motivo da rejeição: {r.motivo_rejeicao}</span>
@@ -128,8 +154,8 @@ export default function MeusRegistros({ itens, online, onRefresh, notify, onNovo
                       <div className="row-actions">
                         {r.status === 'RASCUNHO' && (
                           <button
-                            className="btn btn-secondary"
-                            style={{ padding: '8px 10px', fontSize: 12 }}
+                            type="button"
+                            className="btn btn-secondary btn-sm"
                             disabled={busyId === r.id}
                             onClick={() => void finalizar(r.id)}
                           >
@@ -138,8 +164,8 @@ export default function MeusRegistros({ itens, online, onRefresh, notify, onNovo
                         )}
                         {r.status === 'AGUARDANDO_APROVACAO' && (
                           <button
-                            className="btn btn-danger"
-                            style={{ padding: '8px 10px', fontSize: 12 }}
+                            type="button"
+                            className="btn btn-danger btn-sm"
                             disabled={busyId === r.id}
                             onClick={() => void cancelar(r.id)}
                           >
@@ -153,6 +179,11 @@ export default function MeusRegistros({ itens, online, onRefresh, notify, onNovo
               </tbody>
             </table>
           )}
+        </div>
+        <div className="table-foot">
+          <span>
+            Exibindo {filtrados.length} de {itens.length} registro(s)
+          </span>
         </div>
       </article>
     </div>
