@@ -112,7 +112,9 @@ curl -L -X POST "COLE_A_URL_AQUI" ^
   -d "{\"v\":1,\"acao\":\"sync\",\"email\":\"SEU_ADMIN@email\",\"token\":\"TOKEN\",\"app\":\"1.0.0\",\"payload\":{\"lancamentos\":[],\"cursor\":\"\"}}"
 ```
 
-Use `-L` (seguir redirecionamentos): o Web App do Google redireciona antes do JSON.
+O Web App responde `302` para `script.googleusercontent.com/macros/echo?...`.
+O corpo do POST é processado no `/exec`; o JSON do resultado deve ser lido com **GET** nesse URL de echo
+(POST no echo devolve 405/HTML). O app desktop já faz esse fluxo.
 
 ---
 
@@ -132,7 +134,8 @@ Use `-L` (seguir redirecionamentos): o Web App do Google redireciona antes do JS
 |---|---|
 | `HMAC_SECRET não configurado` | Rode `configurarProjeto()` |
 | Código inválido na ativação | Código expirado ou já usado → `gerarCodigoManual()` ou `admin_usuarios` / `emitir_codigo` |
-| Resposta HTML em vez de JSON | Cliente não seguiu redirect → use `-L` / follow redirects |
+| Resposta HTML / `ppConfig` / pedido de login | “Quem pode acessar” está como *Qualquer pessoa com Conta do Google*. Mude para **Qualquer pessoa**, gere **Nova versão** da implantação e teste a URL em janela anônima (deve sair JSON sem login). |
+| Resposta HTML em vez de JSON (outros casos) | Cliente precisa seguir redirect **mantendo POST** (o app desktop já faz isso). |
 | Alterou o código e nada mudou | Publique **nova versão** da implantação |
 | `OCUPADO` | Outra sync em andamento; tente de novo |
 

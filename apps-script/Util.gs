@@ -127,6 +127,10 @@ function limparFalhasAuth_(email) {
   CacheService.getScriptCache().remove(rateKey_(email));
 }
 
+/**
+ * getRange(row, column, numRows, numColumns) — o 3º/4º args são QUANTIDADES,
+ * não índices finais. Usar lastRow-1 como numRows a partir da linha 2.
+ */
 /** Lê todas as linhas de uma aba como objetos {col: valor}. */
 function lerAba_(nomeAba, colunas) {
   var sh = sheet_(nomeAba);
@@ -134,7 +138,8 @@ function lerAba_(nomeAba, colunas) {
   if (last < 2) {
     return [];
   }
-  var values = sh.getRange(2, 1, last, colunas.length).getDisplayValues();
+  var numRows = last - 1;
+  var values = sh.getRange(2, 1, numRows, colunas.length).getDisplayValues();
   return values.map(function (row) {
     var obj = {};
     colunas.forEach(function (c, i) {
@@ -163,11 +168,19 @@ function atualizarLinhaPorId_(nomeAba, colunas, idCampo, idValor, patch) {
   if (last < 2) return false;
   var idIdx = colunas.indexOf(idCampo);
   if (idIdx < 0) return false;
-  var ids = sh.getRange(2, idIdx + 1, last, 1).getDisplayValues();
+  var numRows = last - 1;
+  var ids = sh.getRange(2, idIdx + 1, numRows, 1).getDisplayValues();
+  var alvo = String(idValor);
   for (var i = 0; i < ids.length; i++) {
-    if (String(ids[i][0]) === String(idValor)) {
+    // E-mails: compara normalizado; demais campos: igualdade direta
+    var cell = String(ids[i][0]);
+    var match = idCampo === 'email'
+      ? normalizarEmail_(cell) === normalizarEmail_(alvo)
+      : cell === alvo;
+    if (match) {
       var rowNum = i + 2;
-      var range = sh.getRange(rowNum, 1, rowNum, colunas.length);
+      // 1 linha x N colunas (não usar rowNum como numRows!)
+      var range = sh.getRange(rowNum, 1, 1, colunas.length);
       var vals = range.getDisplayValues()[0];
       colunas.forEach(function (c, j) {
         if (Object.prototype.hasOwnProperty.call(patch, c)) {

@@ -1,0 +1,35 @@
+{
+  "name": "controle-horas-extras",
+  "productName": "Controle de Horas",
+  "version": "1.0.0",
+  "description": "App desktop — Controle de Horas Extras (PMERJ)",
+  "main": "./out/main/index.js",
+  "author": "PMERJ",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview"
+  },
+  "dependencies": {
+    "sql.js": "^1.12.0",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.0",
+    "electron-vite": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true,
+    "esbuild@0.21.5": true
+  }
+}
