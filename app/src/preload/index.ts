@@ -31,6 +31,15 @@ const api: ElectronAPI = {
     if (!res.ok) return res
     return { ok: true as const, unidades: (res.dados.unidades as never[]) || [] }
   },
+  adminListarPainel: async () => {
+    const res = await adminOp('listar_painel')
+    if (!res.ok) return res
+    return {
+      ok: true as const,
+      usuarios: (res.dados.usuarios as never[]) || [],
+      unidades: (res.dados.unidades as never[]) || []
+    }
+  },
   adminCriarUsuario: async (input: CriarUsuarioInput) => {
     const res = await adminOp('criar_usuario', { ...input })
     if (!res.ok) return res

@@ -51,6 +51,15 @@ export interface ElectronAPI {
   adminListarUnidades: () => Promise<
     { ok: true; unidades: import('../shared/types').AdminUnidade[] } | { ok: false; mensagem: string }
   >
+  /** Usuários + unidades em uma única ida ao Apps Script */
+  adminListarPainel: () => Promise<
+    | {
+        ok: true
+        usuarios: import('../shared/types').AdminUsuario[]
+        unidades: import('../shared/types').AdminUnidade[]
+      }
+    | { ok: false; mensagem: string }
+  >
   adminCriarUsuario: (
     input: CriarUsuarioInput
   ) => Promise<

@@ -12,6 +12,7 @@ export default function AdminUsuarios({ online, notify }: Props) {
   const [usuarios, setUsuarios] = useState<AdminUsuario[]>([])
   const [unidades, setUnidades] = useState<AdminUnidade[]>([])
   const [loading, setLoading] = useState(true)
+  const [jaCarregou, setJaCarregou] = useState(false)
   const [busca, setBusca] = useState('')
   const [modalUser, setModalUser] = useState(false)
   const [perfilInicial, setPerfilInicial] = useState<'POLICIAL' | 'COMANDANTE' | 'ADMIN'>('POLICIAL')
@@ -32,20 +33,15 @@ export default function AdminUsuarios({ online, notify }: Props) {
     }
     setLoading(true)
     try {
-      const [u, un] = await Promise.all([
-        window.api.adminListarUsuarios(),
-        window.api.adminListarUnidades()
-      ])
-      if (!u.ok) {
-        notify(u.mensagem)
+      // Uma única ida ao Web App (antes eram 2: usuários + unidades ≈ 2× a latência do Apps Script)
+      const res = await window.api.adminListarPainel()
+      if (!res.ok) {
+        notify(res.mensagem)
         return
       }
-      if (!un.ok) {
-        notify(un.mensagem)
-        return
-      }
-      setUsuarios(u.usuarios)
-      setUnidades(un.unidades)
+      setUsuarios(res.usuarios)
+      setUnidades(res.unidades)
+      setJaCarregou(true)
     } finally {
       setLoading(false)
     }
@@ -197,7 +193,7 @@ export default function AdminUsuarios({ online, notify }: Props) {
           </div>
         </div>
         <div className="table-wrap">
-          {loading ? (
+          {loading && !jaCarregou ? (
             <div className="empty">Carregando…</div>
           ) : filtrados.length === 0 ? (
             <div className="empty">Nenhum usuário encontrado.</div>

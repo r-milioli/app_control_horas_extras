@@ -146,6 +146,12 @@ function acaoAdminUsuarios_(req) {
       return { usuarios: lerAba_(ABAS.USUARIOS, COL.USUARIOS).map(sanitizarUsuario_) };
     case 'listar_unidades':
       return { unidades: lerAba_(ABAS.UNIDADES, COL.UNIDADES) };
+    case 'listar_painel':
+      // Uma só ida ao Web App: evita 2× cold start + auth + redirect (~metade da espera na tela admin)
+      return {
+        usuarios: lerAba_(ABAS.USUARIOS, COL.USUARIOS).map(sanitizarUsuario_),
+        unidades: lerAba_(ABAS.UNIDADES, COL.UNIDADES)
+      };
     case 'listar_dispositivos':
       return { dispositivos: lerAba_(ABAS.DISPOSITIVOS, COL.DISPOSITIVOS).map(function (d) {
         return {
