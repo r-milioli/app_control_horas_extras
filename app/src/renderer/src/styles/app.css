@@ -759,6 +759,24 @@ body.dark .bar-chart {
   color: var(--muted);
 }
 
+.panel-body {
+  padding: 0 21px 8px;
+  display: grid;
+  gap: 15px;
+}
+
+.panel-body .field {
+  margin-bottom: 0;
+}
+
+.panel-actions {
+  padding: 12px 21px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .text-link {
   border: 0;
   background: transparent;

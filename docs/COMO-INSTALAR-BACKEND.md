@@ -47,6 +47,7 @@ Na lateral **Arquivos**, para cada item abaixo:
 | `Api` | `apps-script/Api.gs` |
 | `Auth` | `apps-script/Auth.gs` |
 | `Ativacao` | `apps-script/Ativacao.gs` |
+| `Perfil` | `apps-script/Perfil.gs` |
 | `Lancamentos` | `apps-script/Lancamentos.gs` |
 | `Aprovacao` | `apps-script/Aprovacao.gs` |
 | `Admin` | `apps-script/Admin.gs` |

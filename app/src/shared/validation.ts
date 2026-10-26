@@ -109,7 +109,13 @@ export function mensagemErroApi(codigo: string, mensagem: string): string {
   }
   // Prefere a mensagem específica do servidor/cliente quando existir
   if (mensagem && mensagem.trim()) {
-    if (codigo === 'VALIDACAO' || codigo === 'ERRO_INTERNO') return mensagem
+    if (
+      codigo === 'VALIDACAO' ||
+      codigo === 'ERRO_INTERNO' ||
+      codigo === 'SENHA_INVALIDA'
+    ) {
+      return mensagem
+    }
   }
   return map[codigo] || mensagem || 'Falha na comunicação com o servidor.'
 }

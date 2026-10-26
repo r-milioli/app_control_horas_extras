@@ -41,7 +41,7 @@ O backend é um script que:
 - usa trava (`LockService`) para que várias unidades sincronizando juntas não corrompam os dados;
 - registra tudo numa aba de auditoria e faz backup diário.
 
-Quando terminar este manual você terá as 10 ações da API funcionando: `login`, `sync`, `cancelar`, `pendencias`, `decidir`, `saldo`, `relatorio`, `estornar`, `admin_usuarios` e `auditoria`.
+Quando terminar este manual você terá as 11 ações da API funcionando: `login`, `perfil`, `sync`, `cancelar`, `pendencias`, `decidir`, `saldo`, `relatorio`, `estornar`, `admin_usuarios` e `auditoria`.
 
 > O app desktop (Electron) é a Fase 2 em diante e **não** faz parte deste manual. A seção 10 traz tudo que o desenvolvedor do app precisa saber sobre a API.
 
@@ -176,6 +176,7 @@ O arquivo `Código.gs` que já existe: renomeie-o para `Api` (três pontinhos ao
 | 3 | `Api.gs` | `doGet`, `doPost` e o roteador de ações |
 | 4 | `Auth.gs` | Autenticação, perfis, senha |
 | 5 | `Ativacao.gs` | Ação `login` (e-mail + senha → token) |
+| 5b | `Perfil.gs` | Ação `perfil` (nome e alterar senha) |
 | 6 | `Lancamentos.gs` | `sync`, `cancelar`, `saldo` e cálculo de saldos |
 | 7 | `Aprovacao.gs` | `pendencias`, `decidir` |
 | 8 | `Admin.gs` | `relatorio`, `estornar`, `admin_usuarios`, `auditoria` |

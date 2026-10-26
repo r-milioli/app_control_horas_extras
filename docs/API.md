@@ -40,6 +40,7 @@ Códigos: `NAO_AUTORIZADO`, `USUARIO_INATIVO`, `SENHA_INVALIDA`, `VALIDACAO`, `V
 | Ação | Perfis | Payload principal |
 |---|---|---|
 | `login` | — | `senha`, `nome_maquina` |
+| `perfil` | todos | `op`: `obter` \| `atualizar` (`nome`) \| `alterar_senha` (`senha_atual`, `senha_nova`) |
 | `sync` | todos | `lancamentos[]`, `cursor` |
 | `cancelar` | autor | `id` |
 | `pendencias` | COMANDANTE, ADMIN | — |

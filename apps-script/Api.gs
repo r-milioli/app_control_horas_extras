@@ -56,6 +56,8 @@ function roteador_(req) {
   switch (String(req.acao)) {
     case 'login':
       return respostaOk_(acaoLogin_(req));
+    case 'perfil':
+      return respostaOk_(acaoPerfil_(req));
     case 'sync':
       return respostaOk_(acaoSync_(req));
     case 'cancelar':

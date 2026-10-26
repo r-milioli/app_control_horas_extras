@@ -94,6 +94,13 @@ export interface ElectronAPI {
   }) => Promise<
     { ok: true; unidade: import('../shared/types').AdminUnidade } | { ok: false; mensagem: string }
   >
+  atualizarPerfil: (input: {
+    nome: string
+  }) => Promise<{ ok: true; mensagem?: string } | { ok: false; mensagem: string }>
+  alterarSenha: (input: {
+    senha_atual: string
+    senha_nova: string
+  }) => Promise<{ ok: true; mensagem?: string } | { ok: false; mensagem: string }>
 }
 
 declare global {

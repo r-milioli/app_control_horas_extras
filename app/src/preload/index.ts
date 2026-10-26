@@ -77,7 +77,9 @@ const api: ElectronAPI = {
     const res = await adminOp('atualizar_unidade', { ...input })
     if (!res.ok) return res
     return { ok: true as const, unidade: res.dados.unidade as never }
-  }
+  },
+  atualizarPerfil: (input) => ipcRenderer.invoke('perfil:atualizar', input),
+  alterarSenha: (input) => ipcRenderer.invoke('perfil:alterarSenha', input)
 }
 
 contextBridge.exposeInMainWorld('api', api)

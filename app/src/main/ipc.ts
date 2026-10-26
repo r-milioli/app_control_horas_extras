@@ -199,4 +199,78 @@ export function registerIpc(): void {
       }
     }
   })
+
+  ipcMain.handle(
+    'perfil:atualizar',
+    async (_e, payload: { nome: string }) => {
+      const creds = lerCredenciais()
+      if (!creds) {
+        return { ok: false as const, mensagem: 'Faça login novamente.' }
+      }
+      try {
+        const dados = await apiPost<{
+          usuario?: {
+            email: string
+            nome: string
+            matricula: string
+            unidade_id: string
+            perfis: string[]
+          }
+          mensagem?: string
+        }>('perfil', creds.email, creds.token, {
+          op: 'atualizar',
+          nome: payload.nome
+        })
+        if (dados.usuario) {
+          const atual = lerUsuarioCache()
+          salvarUsuarioCache({
+            email: dados.usuario.email,
+            nome: dados.usuario.nome,
+            matricula: dados.usuario.matricula,
+            unidade_id: dados.usuario.unidade_id,
+            perfis: (dados.usuario.perfis || []).join(','),
+            saldo_minutos: atual?.saldo_minutos ?? 0,
+            saldo_legivel: atual?.saldo_legivel ?? formatarHoras(0),
+            creditos_min: atual?.creditos_min ?? 0,
+            debitos_min: atual?.debitos_min ?? 0
+          })
+        }
+        return { ok: true as const, mensagem: dados.mensagem || 'Perfil atualizado.' }
+      } catch (err) {
+        if (err instanceof ApiClientError) {
+          return { ok: false as const, mensagem: mensagemErroApi(err.codigo, err.message) }
+        }
+        return {
+          ok: false as const,
+          mensagem: err instanceof Error ? err.message : 'Não foi possível atualizar o perfil.'
+        }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'perfil:alterarSenha',
+    async (_e, payload: { senha_atual: string; senha_nova: string }) => {
+      const creds = lerCredenciais()
+      if (!creds) {
+        return { ok: false as const, mensagem: 'Faça login novamente.' }
+      }
+      try {
+        const dados = await apiPost<{ mensagem?: string }>('perfil', creds.email, creds.token, {
+          op: 'alterar_senha',
+          senha_atual: payload.senha_atual,
+          senha_nova: payload.senha_nova
+        })
+        return { ok: true as const, mensagem: dados.mensagem || 'Senha alterada.' }
+      } catch (err) {
+        if (err instanceof ApiClientError) {
+          return { ok: false as const, mensagem: mensagemErroApi(err.codigo, err.message) }
+        }
+        return {
+          ok: false as const,
+          mensagem: err instanceof Error ? err.message : 'Não foi possível alterar a senha.'
+        }
+      }
+    }
+  )
 }

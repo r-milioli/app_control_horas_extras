@@ -3,6 +3,7 @@ import type { AppState, LancamentoLocal } from '../../shared/types'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import MeusRegistros from './pages/MeusRegistros'
+import MeuPerfil from './pages/MeuPerfil'
 import AdminUsuarios from './pages/AdminUsuarios'
 import ModalNovoLancamento from './components/ModalNovoLancamento'
 import {
@@ -11,11 +12,12 @@ import {
   IconRecords,
   IconSync,
   IconTheme,
+  IconUser,
   IconUsers
 } from './components/Icons'
 import { iniciaisNome, parsePerfis, rotuloPerfil, type PerfilApp } from './lib/roles'
 
-type Page = 'home' | 'registros' | 'admin'
+type Page = 'home' | 'registros' | 'perfil' | 'admin'
 
 const CREST_URL =
   'https://commons.wikimedia.org/wiki/Special:FilePath/Bras%C3%A3o_da_Pol%C3%ADcia_Militar_do_Estado_do_Rio_de_Janeiro_-_PMERJ_-_Variante_Azul.png'
@@ -137,6 +139,7 @@ export default function App() {
   const titles: Record<Page, string> = {
     home: 'Visão geral',
     registros: 'Lançamentos',
+    perfil: 'Meu perfil',
     admin: 'Usuários e unidades'
   }
 
@@ -173,6 +176,14 @@ export default function App() {
             <IconRecords />
             <span>Lançamentos</span>
             {state.pendentesEnvio > 0 && <span className="count">{state.pendentesEnvio}</span>}
+          </button>
+          <button
+            type="button"
+            className={page === 'perfil' ? 'active' : ''}
+            onClick={() => setPage('perfil')}
+          >
+            <IconUser />
+            <span>Meu perfil</span>
           </button>
         </nav>
 
@@ -271,6 +282,14 @@ export default function App() {
               notify={notify}
               onRefresh={() => void refresh()}
               onNovo={abrirNovo}
+            />
+          )}
+          {page === 'perfil' && (
+            <MeuPerfil
+              usuario={state.usuario}
+              online={state.online}
+              notify={notify}
+              onUsuarioAtualizado={() => void refresh()}
             />
           )}
           {page === 'admin' && isAdmin && (
