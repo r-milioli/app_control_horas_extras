@@ -19,20 +19,19 @@ function testeCalcularSaldoDemo() {
 
 /**
  * Simula um doPost localmente (útil antes de publicar).
- * Ajuste email/token/payload conforme seu ambiente de teste.
+ * Ajuste email/senha/payload conforme seu ambiente de teste.
  */
-function testePostAtivarFake() {
+function testePostLoginFake() {
   var fake = {
     postData: {
       contents: JSON.stringify({
         v: 1,
-        acao: 'ativar',
+        acao: 'login',
         email: SETUP_ADMIN.email,
         app: '1.0.0',
         payload: {
-          codigo: '000000',
-          nome_maquina: 'PC-TESTE',
-          pin: '123456'
+          senha: 'TroqueEstaSenha1!',
+          nome_maquina: 'PC-TESTE'
         }
       })
     }

@@ -203,21 +203,19 @@ export async function apiPost<T>(
   })
 }
 
-export async function apiAtivar(payload: {
+export async function apiLogin(payload: {
   email: string
-  codigo: string
+  senha: string
   nome_maquina: string
-  pin?: string
-}): Promise<import('../shared/types').AtivarResult> {
+}): Promise<import('../shared/types').LoginResult> {
   return postJson({
     v: 1,
-    acao: 'ativar',
+    acao: 'login',
     email: payload.email,
     app: getAppVersion(),
     payload: {
-      codigo: payload.codigo,
-      nome_maquina: payload.nome_maquina,
-      ...(payload.pin ? { pin: payload.pin } : {})
+      senha: payload.senha,
+      nome_maquina: payload.nome_maquina
     }
   })
 }

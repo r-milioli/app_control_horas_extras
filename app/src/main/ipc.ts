@@ -1,6 +1,6 @@
 import { ipcMain, app } from 'electron'
 import { hostname } from 'os'
-import { apiAtivar, apiHealth, apiPost, ApiClientError } from './api'
+import { apiLogin, apiHealth, apiPost, ApiClientError } from './api'
 import {
   estaAtivado,
   lerCredenciais,
@@ -13,6 +13,7 @@ import {
   criarLancamento,
   finalizarLancamento,
   getConfig,
+  limparDadosSessaoLocal,
   listarLancamentos,
   lerUsuarioCache,
   marcarCanceladoLocal,
@@ -50,20 +51,15 @@ export function registerIpc(): void {
     return health
   })
 
-  ipcMain.handle('auth:ativar', async (_e, payload: { email: string; codigo: string; pin?: string }) => {
+  ipcMain.handle('auth:login', async (_e, payload: { email: string; senha: string }) => {
     try {
-      const dados = await apiAtivar({
+      const dados = await apiLogin({
         email: payload.email.trim(),
-        codigo: payload.codigo.trim(),
-        nome_maquina: hostname() || 'Windows',
-        pin: payload.pin
+        senha: payload.senha,
+        nome_maquina: hostname() || 'Windows'
       })
 
-      if (dados.etapa === 'DEFINIR_PIN') {
-        return { ok: true as const, etapa: 'DEFINIR_PIN' as const, mensagem: dados.mensagem, email: dados.email }
-      }
-
-      if (dados.etapa === 'CONCLUIDO' && dados.token && dados.usuario) {
+      if (dados.token && dados.usuario) {
         salvarCredenciais(dados.usuario.email, dados.token)
         const usuario = {
           email: dados.usuario.email,
@@ -78,14 +74,14 @@ export function registerIpc(): void {
         }
         salvarUsuarioCache(usuario)
         salvarSessaoUsuario(usuario)
-        return { ok: true as const, etapa: 'CONCLUIDO' as const, usuario }
+        return { ok: true as const, usuario }
       }
 
       return {
         ok: false as const,
         codigo: 'ERRO_INTERNO',
         mensagem:
-          'Resposta inesperada na ativação (o servidor não devolveu token). Verifique se o Web App está publicado como “Qualquer pessoa” e tente de novo.'
+          'Resposta inesperada no login (o servidor não devolveu token). Verifique se o Web App está publicado como “Qualquer pessoa” e tente de novo.'
       }
     } catch (err) {
       if (err instanceof ApiClientError) {
@@ -98,13 +94,14 @@ export function registerIpc(): void {
       return {
         ok: false as const,
         codigo: 'ERRO_INTERNO',
-        mensagem: err instanceof Error ? err.message : 'Falha na ativação.'
+        mensagem: err instanceof Error ? err.message : 'Falha no login.'
       }
     }
   })
 
   ipcMain.handle('auth:logout', async () => {
     limparCredenciais()
+    limparDadosSessaoLocal()
     return { ok: true }
   })
 

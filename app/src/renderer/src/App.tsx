@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AppState, LancamentoLocal } from '../../shared/types'
-import Ativacao from './pages/Ativacao'
+import Login from './pages/Login'
 import Home from './pages/Home'
 import MeusRegistros from './pages/MeusRegistros'
 import AdminUsuarios from './pages/AdminUsuarios'
@@ -105,14 +105,14 @@ export default function App() {
 
   async function handleLogout() {
     const ok = window.confirm(
-      'Sair deste computador?\n\nO token deste aparelho será apagado. Para usar de novo, será preciso um novo código de ativação do administrador.'
+      'Sair da conta?\n\nVocê poderá entrar de novo com e-mail e senha. Outro usuário também poderá se logar neste computador.'
     )
     if (!ok) return
     await window.api.logout()
     setLancamentos([])
     setPage('home')
     setModalNovo(false)
-    notify('Você saiu deste computador.')
+    notify('Você saiu da conta.')
     await refresh()
   }
 
@@ -123,7 +123,7 @@ export default function App() {
   if (!state.activated) {
     return (
       <>
-        <Ativacao
+        <Login
           notify={notify}
           onDone={() => {
             void refresh({ autoSync: true })

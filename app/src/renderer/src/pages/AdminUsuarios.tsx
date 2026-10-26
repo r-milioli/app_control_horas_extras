@@ -19,10 +19,11 @@ export default function AdminUsuarios({ online, notify }: Props) {
   const [modalUnidade, setModalUnidade] = useState(false)
   const [editUser, setEditUser] = useState<AdminUsuario | null>(null)
   const [editUnidade, setEditUnidade] = useState<AdminUnidade | null>(null)
-  const [codigoInfo, setCodigoInfo] = useState<{
+  const [credenciaisInfo, setCredenciaisInfo] = useState<{
     email: string
-    codigo: string
-    expira_em: string
+    senha: string
+    titulo?: string
+    descricao?: string
   } | null>(null)
 
   const carregar = useCallback(async () => {
@@ -65,17 +66,30 @@ export default function AdminUsuarios({ online, notify }: Props) {
   const ativos = usuarios.filter((u) => String(u.ativo).toUpperCase() === 'SIM').length
   const unidadesAtivas = unidades.filter((u) => String(u.ativa).toUpperCase() === 'SIM').length
 
-  async function emitirCodigo(email: string) {
+  async function redefinirSenha(email: string) {
     if (!online) {
       notify('É preciso estar online.')
       return
     }
-    const res = await window.api.adminEmitirCodigo(email)
+    if (
+      !window.confirm(
+        'Gerar uma nova senha forte para este usuário?\n\nA senha atual deixa de valer imediatamente.'
+      )
+    ) {
+      return
+    }
+    const res = await window.api.adminRedefinirSenha(email)
     if (!res.ok) {
       notify(res.mensagem)
       return
     }
-    setCodigoInfo({ email: res.email, codigo: res.codigo, expira_em: res.expira_em })
+    setCredenciaisInfo({
+      email: res.email,
+      senha: res.senha_inicial,
+      titulo: 'Nova senha',
+      descricao:
+        'Entregue esta senha ao usuário. Ela é forte e não fica legível na planilha (só o hash).'
+    })
   }
 
   return (
@@ -173,7 +187,7 @@ export default function AdminUsuarios({ online, notify }: Props) {
         <div className="panel-head">
           <div>
             <h2>Usuários</h2>
-            <p>Nome e matrícula vêm deste cadastro. Ao criar, um código de ativação é gerado.</p>
+            <p>Nome e matrícula vêm deste cadastro. Ao criar, uma senha forte é gerada automaticamente.</p>
           </div>
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => void carregar()} disabled={!online || loading}>
             Atualizar
@@ -243,9 +257,9 @@ export default function AdminUsuarios({ online, notify }: Props) {
                           type="button"
                           className="btn btn-secondary btn-sm"
                           disabled={!online}
-                          onClick={() => void emitirCodigo(u.email)}
+                          onClick={() => void redefinirSenha(u.email)}
                         >
-                          Novo código
+                          Nova senha
                         </button>
                       </div>
                     </td>
@@ -326,7 +340,13 @@ export default function AdminUsuarios({ online, notify }: Props) {
           onClose={() => setModalUser(false)}
           onCreated={(info) => {
             setModalUser(false)
-            setCodigoInfo(info)
+            setCredenciaisInfo({
+              email: info.email,
+              senha: info.senha,
+              titulo: 'Senha inicial',
+              descricao:
+                'Anote e entregue a senha ao usuário. Ela aparece só uma vez; o login no app é e-mail + senha.'
+            })
             void carregar()
           }}
           notify={notify}
@@ -345,8 +365,12 @@ export default function AdminUsuarios({ online, notify }: Props) {
         />
       )}
 
-      {codigoInfo && (
-        <ModalCodigoAtivacao info={codigoInfo} onClose={() => setCodigoInfo(null)} notify={notify} />
+      {credenciaisInfo && (
+        <ModalCredenciais
+          info={credenciaisInfo}
+          onClose={() => setCredenciaisInfo(null)}
+          notify={notify}
+        />
       )}
 
       {editUser && (
@@ -387,18 +411,18 @@ function ModalCriarUsuario({
   unidades: AdminUnidade[]
   perfilInicial: 'POLICIAL' | 'COMANDANTE' | 'ADMIN'
   onClose: () => void
-  onCreated: (info: { email: string; codigo: string; expira_em: string }) => void
+  onCreated: (info: { email: string; senha: string }) => void
   notify: (msg: string) => void
 }) {
   const titulos = {
     POLICIAL: { h: 'Novo policial', p: 'Usuário que lança horas extras e compensações.' },
     COMANDANTE: {
       h: 'Novo comandante',
-      p: 'Aprova lançamentos da unidade. Definirá um PIN na primeira ativação.'
+      p: 'Aprova lançamentos da unidade. Confirma decisões com a senha da conta.'
     },
     ADMIN: {
       h: 'Novo administrador',
-      p: 'Acesso ao painel central. Definirá um PIN na primeira ativação.'
+      p: 'Acesso ao painel central. Confirma decisões com a senha da conta.'
     }
   } as const
 
@@ -436,8 +460,7 @@ function ModalCriarUsuario({
       notify('Usuário cadastrado.')
       onCreated({
         email: res.usuario.email,
-        codigo: res.codigo_ativacao,
-        expira_em: res.expira_em
+        senha: res.senha_inicial
       })
     } finally {
       setLoading(false)
@@ -450,7 +473,10 @@ function ModalCriarUsuario({
         <div className="modal-head">
           <div>
             <h2>{titulos[perfilInicial].h}</h2>
-            <p>{titulos[perfilInicial].p} O código de ativação aparece só uma vez.</p>
+            <p>
+              {titulos[perfilInicial].p} Uma senha forte é gerada automaticamente e aparece só uma
+              vez.
+            </p>
           </div>
           <button type="button" className="modal-close" onClick={onClose} disabled={loading} aria-label="Fechar">
             ✕
@@ -618,22 +644,32 @@ function ModalCriarUnidade({
   )
 }
 
-function ModalCodigoAtivacao({
+function ModalCredenciais({
   info,
   onClose,
   notify
 }: {
-  info: { email: string; codigo: string; expira_em: string }
+  info: {
+    email: string
+    senha: string
+    titulo?: string
+    descricao?: string
+  }
   onClose: () => void
   notify: (msg: string) => void
 }) {
   return (
-    <div className="modal-backdrop open" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="modal-backdrop open"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="modal">
         <div className="modal-head">
           <div>
-            <h2>Código de ativação</h2>
-            <p>Entregue este código ao usuário. Ele vale 72 horas e só pode ser usado uma vez.</p>
+            <h2>{info.titulo || 'Senha'}</h2>
+            <p>{info.descricao || 'Anote e entregue ao usuário.'}</p>
           </div>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Fechar">
             ✕
@@ -645,14 +681,15 @@ function ModalCodigoAtivacao({
             <input readOnly value={info.email} />
           </div>
           <div className="field">
-            <label>Código</label>
-            <input readOnly value={info.codigo} className="codigo-destaque" />
-          </div>
-          <div className="field-hint">
-            Expira em {info.expira_em ? new Date(info.expira_em).toLocaleString('pt-BR') : '—'}
+            <label>Senha</label>
+            <input readOnly value={info.senha} className="codigo-destaque" />
+            <div className="field-hint">
+              Login no app: e-mail + senha. Comandante/admin também usam a senha ao aprovar
+              lançamentos.
+            </div>
           </div>
           <div className="alert alert-info">
-            Anote agora: o código não fica legível na planilha (só o hash).
+            Anote agora: a senha não fica legível na planilha (só o hash).
           </div>
         </div>
         <div className="modal-foot">
@@ -661,14 +698,14 @@ function ModalCodigoAtivacao({
             className="btn btn-secondary"
             onClick={async () => {
               try {
-                await navigator.clipboard.writeText(info.codigo)
-                notify('Código copiado.')
+                await navigator.clipboard.writeText(info.senha)
+                notify('Senha copiada.')
               } catch {
-                notify('Não foi possível copiar. Anote manualmente: ' + info.codigo)
+                notify('Não foi possível copiar. Anote manualmente: ' + info.senha)
               }
             }}
           >
-            Copiar código
+            Copiar senha
           </button>
           <button type="button" className="btn btn-primary" onClick={onClose}>
             Fechar

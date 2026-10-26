@@ -11,7 +11,7 @@ async function adminOp(op: string, payload: Record<string, unknown> = {}) {
 const api: ElectronAPI = {
   getState: () => ipcRenderer.invoke('app:getState'),
   health: () => ipcRenderer.invoke('app:health'),
-  ativar: (payload) => ipcRenderer.invoke('auth:ativar', payload),
+  login: (payload) => ipcRenderer.invoke('auth:login', payload),
   logout: () => ipcRenderer.invoke('auth:logout'),
   listarLancamentos: () => ipcRenderer.invoke('lancamentos:listar'),
   criarLancamento: (input) => ipcRenderer.invoke('lancamentos:criar', input),
@@ -46,8 +46,7 @@ const api: ElectronAPI = {
     return {
       ok: true as const,
       usuario: res.dados.usuario as never,
-      codigo_ativacao: String(res.dados.codigo_ativacao || ''),
-      expira_em: String(res.dados.expira_em || '')
+      senha_inicial: String(res.dados.senha_inicial || '')
     }
   },
   adminCriarUnidade: async (input: CriarUnidadeInput) => {
@@ -59,14 +58,14 @@ const api: ElectronAPI = {
       nome: String(res.dados.nome || '')
     }
   },
-  adminEmitirCodigo: async (email: string) => {
-    const res = await adminOp('emitir_codigo', { email })
+  adminRedefinirSenha: async (email: string) => {
+    const res = await adminOp('redefinir_senha', { email })
     if (!res.ok) return res
     return {
       ok: true as const,
       email: String(res.dados.email || email),
-      codigo: String(res.dados.codigo || ''),
-      expira_em: String(res.dados.expira_em || '')
+      senha_inicial: String(res.dados.senha_inicial || ''),
+      mensagem: res.dados.mensagem ? String(res.dados.mensagem) : undefined
     }
   },
   adminAtualizarUsuario: async (input) => {

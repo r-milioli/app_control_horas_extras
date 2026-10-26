@@ -11,8 +11,7 @@ var CFG = {
   MAX_MINUTOS: 1440,
   MOTIVO_MIN: 5,
   MOTIVO_MAX: 500,
-  PIN_TAMANHO: 6,
-  CODIGO_ATIVACAO_HORAS: 72,
+  SENHA_MIN: 8,
   LOCK_TIMEOUT_MS: 30000,
   RATE_LIMIT_MAX: 5,
   RATE_LIMIT_JANELA_SEG: 900,
@@ -41,7 +40,7 @@ var COL = {
   ],
   USUARIOS: [
     'email', 'nome', 'matricula', 'unidade_id', 'perfis', 'ativo',
-    'pin_hash', 'criado_em', 'ultimo_acesso'
+    'senha_hash', 'criado_em', 'ultimo_acesso'
   ],
   DISPOSITIVOS: [
     'id', 'email', 'token_hash', 'nome_maquina', 'ativo', 'criado_em', 'ultimo_sync'
@@ -82,8 +81,7 @@ var PERFIS = {
 var ERROS = {
   NAO_AUTORIZADO: 'NAO_AUTORIZADO',
   USUARIO_INATIVO: 'USUARIO_INATIVO',
-  CODIGO_INVALIDO: 'CODIGO_INVALIDO',
-  PIN_INVALIDO: 'PIN_INVALIDO',
+  SENHA_INVALIDA: 'SENHA_INVALIDA',
   VALIDACAO: 'VALIDACAO',
   VERSAO_ANTIGA: 'VERSAO_ANTIGA',
   BLOQUEADO: 'BLOQUEADO',

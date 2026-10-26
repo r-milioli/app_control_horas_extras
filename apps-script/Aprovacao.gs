@@ -1,5 +1,5 @@
 /**
- * Pendências e decisão (aprovar / rejeitar) com PIN.
+ * Pendências e decisão (aprovar / rejeitar) com senha.
  */
 
 function acaoPendencias_(req) {
@@ -70,7 +70,7 @@ function acaoDecidir_(req) {
     validarMotivo_(motivoRejeicao);
   }
 
-  validarPin_(auth.usuario, payload.pin);
+  validarSenhaUsuario_(auth.usuario, payload.senha);
 
   var resultados = [];
   for (var i = 0; i < ids.length; i++) {

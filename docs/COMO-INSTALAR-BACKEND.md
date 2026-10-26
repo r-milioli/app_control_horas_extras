@@ -67,7 +67,7 @@ Salve tudo (`Ctrl+S`).
 3. No seletor de funções (topo), escolha **`configurarProjeto`** → **Executar**.
 4. Autorize a conta quando o Google pedir (revise as permissões: planilha + Drive para backup).
 5. Escolha **`criarPrimeiroAdmin`** → **Executar**.
-6. Menu **Execuções** (ou *Ver → Logs*): anote o **código de ativação de 6 dígitos**. Ele vale **72 horas** e não fica legível na planilha.
+6. Menu **Execuções** (ou *Ver → Logs*): anote a **senha inicial forte**. Ela não fica legível na planilha (só o hash).
 
 Opcional: execute **`agendarBackupDiario`** (em `Backup.gs`) para cópia diária às ~02:00.
 
@@ -93,15 +93,15 @@ Opcional: execute **`agendarBackupDiario`** (em `Backup.gs`) para cópia diária
 
 Abra a URL no navegador. Deve retornar JSON com `"ok": true`.
 
-### Ativação (POST) — exemplo com curl
+### Login (POST) — exemplo com curl
 
 ```bash
 curl -L -X POST "COLE_A_URL_AQUI" ^
   -H "Content-Type: application/json" ^
-  -d "{\"v\":1,\"acao\":\"ativar\",\"email\":\"SEU_ADMIN@email\",\"app\":\"1.0.0\",\"payload\":{\"codigo\":\"123456\",\"nome_maquina\":\"PC-TESTE\",\"pin\":\"123456\"}}"
+  -d "{\"v\":1,\"acao\":\"login\",\"email\":\"SEU_ADMIN@email\",\"app\":\"1.0.0\",\"payload\":{\"senha\":\"SENHA_DO_LOG\",\"nome_maquina\":\"PC-TESTE\"}}"
 ```
 
-- Se o perfil for ADMIN/COMANDANTE e ainda não houver PIN, a primeira resposta pode ser `etapa: "DEFINIR_PIN"`. Envie de novo com `pin` de 6 dígitos.
+- A senha vem de `criarPrimeiroAdmin` / painel admin. Ação `decidir` também exige `senha` no payload.
 - Guarde o `token` devolvido — as próximas chamadas usam `email` + `token`.
 
 ### Sync (POST)
@@ -133,7 +133,7 @@ O corpo do POST é processado no `/exec`; o JSON do resultado deve ser lido com 
 | Sintoma | O que fazer |
 |---|---|
 | `HMAC_SECRET não configurado` | Rode `configurarProjeto()` |
-| Código inválido na ativação | Código expirado ou já usado → `gerarCodigoManual()` ou `admin_usuarios` / `emitir_codigo` |
+| E-mail ou senha inválidos | Confira a senha do log / **Nova senha** no painel / `regenerarSenhaManual()` |
 | Resposta HTML / `ppConfig` / pedido de login | “Quem pode acessar” está como *Qualquer pessoa com Conta do Google*. Mude para **Qualquer pessoa**, gere **Nova versão** da implantação e teste a URL em janela anônima (deve sair JSON sem login). |
 | Resposta HTML em vez de JSON (outros casos) | Cliente precisa seguir redirect **mantendo POST** (o app desktop já faz isso). |
 | Alterou o código e nada mudou | Publique **nova versão** da implantação |

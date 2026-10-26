@@ -28,10 +28,10 @@ npm run dev
 
 A URL padrão já aponta para o Web App em produção. Variável: `API_URL`.
 
-## Sair / desativar neste PC
+## Sair / trocar de usuário
 
-No app: botão **Sair deste computador** (barra lateral). Apaga o token local.
-Para voltar a usar neste PC, o admin precisa emitir um **novo código de ativação**.
+No app: botão **Sair** (barra lateral). Apaga o token local e os dados da sessão neste PC.
+Qualquer usuário cadastrado pode entrar de novo com **e-mail + senha** (sem código).
 
 ## Criar usuários e unidades (painel Admin)
 
@@ -40,44 +40,23 @@ Com perfil **ADMIN** no app (online):
 1. Menu → **Administração → Usuários e unidades**
 2. **Nova unidade** (se precisar)
 3. **Cadastrar usuário** (Policial / Comandante / Admin)
-4. Guarde o **código de ativação** exibido e entregue ao usuário (72h, uso único)
+4. Guarde a **senha inicial** exibida e entregue ao usuário
 
-Outro PC do mesmo usuário: botão **Novo código** na lista.
+Esqueceu a senha: botão **Nova senha** na lista (gera outra senha forte).
 
-### PIN × código de ativação
+### Login e senha
 
-| | Código de ativação | PIN |
+| | Login (e-mail + senha) | Senha na aprovação |
 |---|---|---|
-| Para quê | Ligar **este computador** ao usuário | Aprovar/rejeitar (só Comandante/Admin) |
-| Quem usa | Todos os perfis, 1× por dispositivo | Só COMANDANTE e ADMIN |
-| Policial precisa? | Sim (código) | **Não** |
-| Por máquina? | Sim — cada PC pede um código novo | **Não** — é do usuário (conta), definido 1× |
+| Para quê | Entrar no app neste computador | Confirmar aprovar/rejeitar (Comandante/Admin) |
+| Quem usa | Todos os perfis | COMANDANTE / ADMIN |
+| Por máquina? | Não — desloga e outro usuário pode logar | Não — é da conta |
 
 ## Como testar o corte vertical (policial)
 
-### 1. Emitir código de ativação
+### 1. Criar usuário
 
-No Apps Script (conta dona), com um admin já autenticado, use a ação `admin_usuarios` / `emitir_codigo`, **ou** cadastre o usuário na planilha e emita o código pelo painel admin quando existir.
-
-Exemplo de corpo `POST` (substitua e-mail/token de um **admin** já ativado):
-
-```json
-{
-  "v": 1,
-  "acao": "admin_usuarios",
-  "email": "admin@exemplo.com",
-  "token": "TOKEN_DO_ADMIN",
-  "app": "1.0.0",
-  "payload": {
-    "op": "emitir_codigo",
-    "email": "policial@exemplo.com"
-  }
-}
-```
-
-A resposta traz o `codigo` em texto **uma única vez**. Entregue ao policial.
-
-Se ainda não há usuário de teste, primeiro:
+Com um admin autenticado (`admin_usuarios` / `criar_usuario`):
 
 ```json
 "payload": {
@@ -90,14 +69,14 @@ Se ainda não há usuário de teste, primeiro:
 }
 ```
 
+A resposta traz `senha_inicial` **uma única vez**. Entregue ao policial.
 (ajuste `unidade_id` para uma unidade existente na aba `Unidades`.)
 
-### 2. Ativar no app
+### 2. Login no app
 
 1. Abra o app (`npm run dev`).
-2. Informe e-mail + código.
-3. Se for comandante/admin sem PIN, o app pede PIN de 6 dígitos.
-4. Feche e reabra: deve ir direto à Home (token no cofre do Windows).
+2. Informe e-mail + senha.
+3. Feche e reabra: deve ir direto à Home (token no cofre do Windows).
 
 ### 3. Lançar offline e sincronizar
 
@@ -127,9 +106,9 @@ Se ainda não há usuário de teste, primeiro:
 
 ## Problemas comuns
 
-### Ativação devolve HTML / pede login / “ppConfig”
+### Login devolve HTML / pede login Google / “ppConfig”
 
-Isso **não** é falha do e-mail/código. O Google está servindo página de login porque o Web App não aceita acesso anônimo.
+Isso **não** é falha do e-mail/senha. O Google está servindo página de login porque o Web App não aceita acesso anônimo.
 
 1. Apps Script → **Implantar → Gerenciar implantações** → ícone de lápis na implantação ativa.
 2. **Executar como:** `Eu`
@@ -137,12 +116,12 @@ Isso **não** é falha do e-mail/código. O Google está servindo página de log
    (se estiver `Qualquer pessoa com Conta do Google`, o app Electron recebe HTML e falha.)
 4. Em **Versão**, escolha **Nova versão** → Implantar.
 5. Teste a URL `/exec` em **janela anônima**: deve aparecer JSON `{"ok":true,...}` **sem** pedir login.
-6. Reinicie o app (`npm run dev`) e ative de novo.
+6. Reinicie o app (`npm run dev`) e faça login de novo.
 
-O código de ativação (`344619` etc.) só é validado **depois** que o POST chega no `doPost` em JSON.
+A senha só é validada **depois** que o POST chega no `doPost` em JSON.
 
 ## Escopo desta fase
 
-Inclui: ativação, lançamentos offline, sync, saldo em cache, cancelar, indicadores online/fila.
+Inclui: login (e-mail + senha), lançamentos offline, sync, saldo em cache, cancelar, indicadores online/fila, painel admin (usuários/unidades).
 
-Ainda não inclui: telas de comandante/admin, relatórios, instalador NSIS.
+Ainda não inclui: tela completa de aprovações no app, relatórios, instalador NSIS.

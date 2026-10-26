@@ -38,6 +38,7 @@ function configurarProjeto() {
 
   criarAbaSeNecessario_(ABAS.LANCAMENTOS, COL.LANCAMENTOS);
   criarAbaSeNecessario_(ABAS.USUARIOS, COL.USUARIOS);
+  migrarCabecalhoUsuariosPinParaSenha_();
   criarAbaSeNecessario_(ABAS.DISPOSITIVOS, COL.DISPOSITIVOS);
   criarAbaSeNecessario_(ABAS.ATIVACOES, COL.ATIVACOES);
   criarAbaSeNecessario_(ABAS.UNIDADES, COL.UNIDADES);
@@ -66,6 +67,23 @@ function configurarProjeto() {
   return 'OK — projeto configurado.';
 }
 
+/**
+ * Planilhas antigas usavam a coluna pin_hash. Renomeia o cabeçalho para senha_hash.
+ * Hashes de PIN antigos não valem como senha — use admin → redefinir senha.
+ */
+function migrarCabecalhoUsuariosPinParaSenha_() {
+  var sh = sheet_(ABAS.USUARIOS);
+  var lastCol = Math.max(sh.getLastColumn(), COL.USUARIOS.length);
+  var header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  for (var i = 0; i < header.length; i++) {
+    if (String(header[i]).trim() === 'pin_hash') {
+      sh.getRange(1, i + 1).setValue('senha_hash');
+      Logger.log('Cabeçalho Usuarios: pin_hash → senha_hash. Redefina senhas dos usuários existentes.');
+      break;
+    }
+  }
+}
+
 function criarAbaSeNecessario_(nome, colunas) {
   var ss = ss_();
   var sh = ss.getSheetByName(nome);
@@ -91,8 +109,8 @@ function criarAbaSeNecessario_(nome, colunas) {
 }
 
 /**
- * Cria unidade CENTRAL + primeiro admin + código de ativação.
- * O código aparece no Logger (Ctrl+Enter → Ver logs) — anote-o.
+ * Cria unidade CENTRAL + primeiro admin + senha forte.
+ * A senha aparece no Logger (Ctrl+Enter → Ver logs) — anote-a.
  */
 function criarPrimeiroAdmin() {
   configurarProjeto();
@@ -114,6 +132,7 @@ function criarPrimeiroAdmin() {
     });
   }
 
+  var criadoAgora = false;
   if (!buscarUsuario_(email)) {
     appendLinha_(ABAS.USUARIOS, COL.USUARIOS, {
       email: email,
@@ -122,40 +141,46 @@ function criarPrimeiroAdmin() {
       unidade_id: SETUP_ADMIN.unidade_id,
       perfis: PERFIS.ADMIN + ',' + PERFIS.POLICIAL,
       ativo: 'SIM',
-      pin_hash: '',
+      senha_hash: '',
       criado_em: agoraIso_(),
       ultimo_acesso: ''
     });
+    criadoAgora = true;
   }
 
-  var codigo = emitirCodigoAtivacao_(email);
+  var senha = emitirSenhaInicial_(email);
   Logger.log('=== PRIMEIRO ADMIN ===');
   Logger.log('E-mail: ' + email);
-  Logger.log('Código de ativação (válido 72h): ' + codigo.codigo);
-  Logger.log('Expira em: ' + codigo.expira_em);
-  Logger.log('Guarde este código. Ele NÃO fica legível na planilha.');
-  return 'Admin criado. Veja o código no log de execução.';
+  Logger.log('Senha inicial (forte): ' + senha);
+  Logger.log('Use e-mail + senha no app (login). A senha NÃO fica legível na planilha.');
+  if (!criadoAgora) {
+    Logger.log('(Usuário já existia — senha foi regenerada.)');
+  }
+  return 'Admin criado. Veja a senha no log de execução.';
 }
 
 /**
- * Recuperação: gera novo código para um e-mail já cadastrado.
+ * Recuperação: gera nova senha forte para um e-mail já cadastrado.
  * Uso: altere o e-mail abaixo e execute no editor.
  */
-function gerarCodigoManual() {
+function regenerarSenhaManual() {
   var email = 'admin.central@exemplo.com'; // <<< edite
   if (email.indexOf('exemplo.com') >= 0) {
-    throw new Error('Edite o e-mail em gerarCodigoManual() antes de rodar.');
+    throw new Error('Edite o e-mail em regenerarSenhaManual() antes de rodar.');
   }
-  var out = emitirCodigoAtivacao_(email);
-  Logger.log('Código para ' + email + ': ' + out.codigo + ' (expira ' + out.expira_em + ')');
-  return out.codigo;
+  if (!buscarUsuario_(normalizarEmail_(email))) {
+    throw new Error('Usuário não encontrado: ' + email);
+  }
+  var senha = emitirSenhaInicial_(email);
+  Logger.log('Nova senha para ' + email + ': ' + senha);
+  return senha;
 }
 
 /**
- * Cadastro rápido de usuário pelo editor (enquanto o painel Admin do app não existe).
+ * Cadastro rápido de usuário pelo editor.
  * 1) Edite os campos abaixo
  * 2) Execute cadastrarUsuarioManual()
- * 3) Copie o código do log e entregue ao usuário
+ * 3) Copie a senha do log e entregue ao usuário
  *
  * perfis: "POLICIAL" | "COMANDANTE" | "ADMIN" | "COMANDANTE,POLICIAL" etc.
  * unidade_id: deve existir na aba Unidades (ex.: CENTRAL)
@@ -165,14 +190,14 @@ function cadastrarUsuarioManual() {
   var nome = 'Nome do Policial';
   var matricula = '123456';
   var unidadeId = 'CENTRAL';
-  var perfis = 'POLICIAL'; // sem PIN; use COMANDANTE ou ADMIN se for aprovar
+  var perfis = 'POLICIAL'; // use COMANDANTE ou ADMIN se for aprovar
 
   email = normalizarEmail_(email);
   if (!email || email.indexOf('exemplo.com') >= 0) {
     throw new Error('Edite o e-mail em cadastrarUsuarioManual() antes de rodar.');
   }
   if (buscarUsuario_(email)) {
-    throw new Error('E-mail já cadastrado. Use gerarCodigoManual() para novo código.');
+    throw new Error('E-mail já cadastrado. Use regenerarSenhaManual() para nova senha.');
   }
   var unidade = encontrarLinha_(ABAS.UNIDADES, COL.UNIDADES, function (u) {
     return u.id === unidadeId;
@@ -188,16 +213,15 @@ function cadastrarUsuarioManual() {
     unidade_id: unidadeId,
     perfis: String(perfis).trim().toUpperCase(),
     ativo: 'SIM',
-    pin_hash: '',
+    senha_hash: '',
     criado_em: agoraIso_(),
     ultimo_acesso: ''
   });
 
-  var out = emitirCodigoAtivacao_(email);
+  var senha = emitirSenhaInicial_(email);
   Logger.log('=== USUÁRIO CADASTRADO ===');
   Logger.log('E-mail: ' + email);
   Logger.log('Perfis: ' + perfis);
-  Logger.log('Código de ativação (72h, uso único): ' + out.codigo);
-  Logger.log('Expira: ' + out.expira_em);
-  return out.codigo;
+  Logger.log('Senha inicial (forte): ' + senha);
+  return senha;
 }

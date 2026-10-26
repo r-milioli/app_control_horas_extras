@@ -41,7 +41,7 @@ O backend é um script que:
 - usa trava (`LockService`) para que várias unidades sincronizando juntas não corrompam os dados;
 - registra tudo numa aba de auditoria e faz backup diário.
 
-Quando terminar este manual você terá as 11 ações da API funcionando: `ativar`, `sync`, `cancelar`, `pendencias`, `decidir`, `saldo`, `relatorio`, `estornar`, `admin_usuarios`, `auditoria` e `definir_pin`.
+Quando terminar este manual você terá as 10 ações da API funcionando: `login`, `sync`, `cancelar`, `pendencias`, `decidir`, `saldo`, `relatorio`, `estornar`, `admin_usuarios` e `auditoria`.
 
 > O app desktop (Electron) é a Fase 2 em diante e **não** faz parte deste manual. A seção 10 traz tudo que o desenvolvedor do app precisa saber sobre a API.
 
@@ -61,7 +61,7 @@ Quando terminar este manual você terá as 11 ações da API funcionando: `ativa
 | **`LockService`** | Trava global | Só uma escrita por vez, evita corrupção |
 | **`CacheService`** | Memória temporária (até 6 h) | Contador de tentativas erradas (bloqueio de 15 min) |
 | **Implantação (deployment)** | "Foto" do código publicada no endereço | Mudou o código? Precisa publicar **nova versão** (seção 11) |
-| **HMAC** | Hash com segredo | Tokens, códigos e PINs ficam na planilha só como hash |
+| **HMAC** | Hash com segredo | Tokens, códigos e senhas ficam na planilha só como hash |
 
 **Duas particularidades do Apps Script que moldam o desenho** (e que o PRD já considera):
 
@@ -76,17 +76,17 @@ O PRD deixou três pontos em aberto. Estas foram as decisões aceitas, mais algu
 
 ### 3.1 Como nasce o primeiro admin
 
-Nenhum admin existe antes de o sistema funcionar, então o primeiro é criado **pela conta dona, dentro do editor do Apps Script**, rodando a função `criarPrimeiroAdmin()` (seção 7). Ela cria a unidade `CENTRAL`, grava o admin na aba `Usuarios` e gera o primeiro código de ativação. Os demais admins, unidades e usuários são cadastrados **pelo painel do app**.
+Nenhum admin existe antes de o sistema funcionar, então o primeiro é criado **pela conta dona, dentro do editor do Apps Script**, rodando a função `criarPrimeiroAdmin()` (seção 7). Ela cria a unidade `CENTRAL`, grava o admin na aba `Usuarios` e gera a **senha inicial forte** (no log). Os demais admins, unidades e usuários são cadastrados **pelo painel do app**.
 
-Se alguém perder o código de ativação e não houver outro admin ativo, existe a função de recuperação `gerarCodigoManual()`, também rodada pela conta dona.
+Se alguém perder a senha e não houver outro admin ativo, existe a função de recuperação `regenerarSenhaManual()`, também rodada pela conta dona.
 
-### 3.2 PIN do comandante (e do admin)
+### 3.2 Senha forte (todos os usuários)
 
-- O PIN tem **6 números**.
-- É definido **na ativação**: se o perfil do usuário inclui **COMANDANTE ou ADMIN** e ele ainda não tem PIN, a ação `ativar` responde `etapa: "DEFINIR_PIN"` (sem gastar o código) e o app pede o PIN; na segunda chamada o servidor grava o PIN (só o hash) e entrega o token.
-- **Admin também recebe PIN**, porque o PRD manda admin aprovar registros de comandantes e de outros admins, e toda decisão exige PIN (RF-23).
-- O admin pode **redefinir** o PIN (`admin_usuarios` → `redefinir_pin`); o usuário então cria um novo pela ação `definir_pin`.
-- Errar o PIN conta nas **5 falhas em 15 min** que bloqueiam o e-mail.
+- Todo usuário recebe uma **senha forte** gerada automaticamente no cadastro (mín. 8 caracteres, maiúscula, minúscula, número e especial).
+- Na planilha fica só o `senha_hash` (HMAC). O texto da senha aparece **uma vez** na resposta / log.
+- Comandante e admin confirmam `decidir` (aprovar/rejeitar) com essa senha no payload (`senha`).
+- O admin pode **redefinir** a senha (`admin_usuarios` → `redefinir_senha`); uma nova senha forte é gerada e devolvida uma vez.
+- Errar a senha conta nas **5 falhas em 15 min** que bloqueiam o e-mail.
 
 ### 3.3 Saldo
 
@@ -102,7 +102,7 @@ saldo = horas extras APROVADAS − compensações APROVADAS
 | Ajuste | Motivo |
 |---|---|
 | Campo `"app": "1.0.0"` em toda requisição | Permite aplicar `versao_minima` (PRD, regra 7). Sem ele não há como saber a versão do app |
-| Ação `definir_pin` | Necessária para redefinição de PIN (3.2) |
+| Op `redefinir_senha` em `admin_usuarios` | Gera nova senha forte (3.2) |
 | Admin **não** estorna lançamento próprio | Impede que um admin devolva a si mesmo horas já compensadas |
 | Admin só decide registros de **comandantes e admins**; os de policiais são do comandante da unidade | Respeita o critério de aceite "só conta após aprovação do comandante da unidade" |
 | Matrícula não pode mudar depois de haver lançamentos | Evita dividir o saldo de uma pessoa em duas matrículas |
@@ -174,11 +174,11 @@ O arquivo `Código.gs` que já existe: renomeie-o para `Api` (três pontinhos ao
 | 1 | `Config.gs` | Constantes e esquema (colunas) das abas |
 | 2 | `Util.gs` | Funções de apoio: ler/gravar planilha, hash, datas, trava, bloqueio |
 | 3 | `Api.gs` | `doGet`, `doPost` e o roteador de ações |
-| 4 | `Auth.gs` | Autenticação, perfis, PIN |
-| 5 | `Ativacao.gs` | Ação `ativar` e emissão de códigos |
+| 4 | `Auth.gs` | Autenticação, perfis, senha |
+| 5 | `Ativacao.gs` | Ação `login` (e-mail + senha → token) |
 | 6 | `Lancamentos.gs` | `sync`, `cancelar`, `saldo` e cálculo de saldos |
 | 7 | `Aprovacao.gs` | `pendencias`, `decidir` |
-| 8 | `Admin.gs` | `relatorio`, `estornar`, `admin_usuarios`, `auditoria`, `definir_pin` |
+| 8 | `Admin.gs` | `relatorio`, `estornar`, `admin_usuarios`, `auditoria` |
 | 9 | `Backup.gs` | Backup diário e rotação |
 | 10 | `Setup.gs` | Configuração inicial e primeiro admin (rodados uma vez, no editor) |
 | 11 | `Testes.gs` | Função para testar sem sair do editor |

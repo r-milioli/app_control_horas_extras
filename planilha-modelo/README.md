@@ -11,7 +11,7 @@ Esta pasta descreve as **7 abas** que o backend usa. Em produção, a função `
 | `Lancamentos` | `Lancamentos.csv` | Script (via sync / decisão / estorno) |
 | `Usuarios` | `Usuarios.csv` | Script (setup / admin) |
 | `Dispositivos` | `Dispositivos.csv` | Script (ativação) |
-| `Ativacoes` | `Ativacoes.csv` | Script (códigos — só hash) |
+| `Ativacoes` | `Ativacoes.csv` | Legado (não usado no login por senha) |
 | `Unidades` | `Unidades.csv` | Script (setup / admin) |
 | `Auditoria` | `Auditoria.csv` | Script (todas as ações relevantes) |
 | `Config` | `Config.csv` | Script (setup) |
@@ -46,12 +46,12 @@ Esta pasta descreve as **7 abas** que o backend usa. Em produção, a função `
 | nome, matricula, unidade_id | Dados cadastrais |
 | perfis | Ex.: `POLICIAL` ou `COMANDANTE,POLICIAL` ou `ADMIN,POLICIAL` |
 | ativo | `SIM` / `NAO` |
-| pin_hash | HMAC do PIN (vazio até definir) |
+| senha_hash | HMAC da senha forte (gerada na criação; nunca em texto claro) |
 | criado_em, ultimo_acesso | ISO |
 
 ## Campos — Dispositivos / Ativacoes / Unidades / Auditoria / Config
 
-Ver cabeçalhos dos CSVs correspondentes. Tokens e códigos **nunca** ficam em texto claro — só hash HMAC.
+Ver cabeçalhos dos CSVs correspondentes. Tokens e senhas **nunca** ficam em texto claro — só hash HMAC.
 
 ## Valores permitidos (resumo)
 

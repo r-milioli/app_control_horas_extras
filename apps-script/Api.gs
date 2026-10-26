@@ -54,10 +54,8 @@ function parseRequest_(e) {
 
 function roteador_(req) {
   switch (String(req.acao)) {
-    case 'ativar':
-      return respostaOk_(acaoAtivar_(req));
-    case 'definir_pin':
-      return respostaOk_(acaoDefinirPin_(req));
+    case 'login':
+      return respostaOk_(acaoLogin_(req));
     case 'sync':
       return respostaOk_(acaoSync_(req));
     case 'cancelar':

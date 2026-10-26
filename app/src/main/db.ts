@@ -147,6 +147,16 @@ export function getConfig(chave: string, fallback = ''): string {
   return row ? String(row.valor) : fallback
 }
 
+/** Limpa dados locais ao trocar de usuário (logout). */
+export function limparDadosSessaoLocal(): void {
+  const database = db
+  if (!database) return
+  database.run('DELETE FROM lancamentos')
+  database.run('DELETE FROM usuario_cache')
+  database.run(`DELETE FROM config_cache WHERE chave IN ('last_sync_at', 'cursor', 'clock_skew')`)
+  persist()
+}
+
 export function salvarUsuarioCache(u: UsuarioCache): void {
   run(
     `INSERT INTO usuario_cache (id, email, nome, matricula, unidade_id, perfis, saldo_minutos, saldo_legivel, creditos_min, debitos_min)

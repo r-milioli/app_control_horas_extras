@@ -44,7 +44,7 @@ As horas extras **não geram remuneração**: servem exclusivamente como saldo p
 | Perfil | Quem é | O que faz |
 |---|---|---|
 | **Policial** | Qualquer usuário cadastrado | Lança as próprias horas extras e compensações, sincroniza, vê seus registros e saldo |
-| **Comandante** | Responsável pela unidade | Vê pendentes da sua unidade, aprova ou rejeita (com PIN) |
+| **Comandante** | Responsável pela unidade | Vê pendentes da sua unidade, aprova ou rejeita (com senha) |
 | **Admin** | Setor central (vários) | Cadastra usuários e unidades, vê tudo, relatórios, estornos, auditoria |
 | **Dono do sistema** | Conta Google nova, criada pelos admins só para este fim | Única conta com acesso direto à planilha e ao script |
 
@@ -101,12 +101,12 @@ Um mesmo e-mail pode ter mais de um perfil (ex.: comandante também lança as su
 
 ## 9. Requisitos funcionais
 
-### 9.1 Cadastro, ativação e autenticação
+### 9.1 Cadastro, login e autenticação
 
 - **RF-01** Admin cadastra no painel: e-mail, nome, matrícula, unidade e perfil(s) do usuário.
-- **RF-02** Ao cadastrar, o sistema gera um **código de ativação** (uso único, validade de 72 h, guardado só como hash) que o admin entrega ao usuário.
-- **RF-03** No primeiro uso, o usuário informa e-mail + código e o servidor devolve um **token de dispositivo**.
-- **RF-04** O token fica guardado no cofre do Windows (Electron `safeStorage`). O usuário não digita mais nada.
+- **RF-02** Ao cadastrar, o sistema gera uma **senha forte** (guardada só como hash) que o admin entrega ao usuário.
+- **RF-03** O usuário faz **login** com e-mail + senha; o servidor devolve um **token de dispositivo/sessão**.
+- **RF-04** O token fica guardado no cofre do Windows (Electron `safeStorage`) enquanto a sessão durar. Ao sair, outro usuário pode se logar no mesmo computador com a própria senha.
 - **RF-05** Todo envio leva e-mail + token; o script confere o usuário ativo, o dispositivo e o perfil.
 - **RF-06** Admin pode **desativar** usuário ou **revogar** dispositivo; vale na próxima sincronização.
 - **RF-07** Um usuário pode ter mais de um dispositivo ativo (ex.: duas máquinas no destacamento).
@@ -130,7 +130,7 @@ Um mesmo e-mail pode ter mais de um perfil (ex.: comandante também lança as su
 
 - **RF-21** Tela de **Aprovações**: registros AGUARDANDO_APROVACAO da sua unidade.
 - **RF-22** Ver detalhes e **aprovar** ou **rejeitar** (rejeição exige motivo), individualmente ou em lote.
-- **RF-23** Confirmar com **PIN próprio**, guardado como hash no servidor.
+- **RF-23** Confirmar com **senha forte própria**, guardada como hash no servidor (gerada no cadastro pelo admin; todos os usuários têm senha).
 - **RF-24** Registrar quem decidiu, quando e de qual dispositivo.
 - **RF-25** Só enxerga e decide registros da **própria unidade**.
 - **RF-26** Aprovar exige conexão (resultado imediato e auditável).
@@ -142,7 +142,7 @@ Um mesmo e-mail pode ter mais de um perfil (ex.: comandante também lança as su
 - **RF-30** Painel com visão global: totais por unidade e por policial, pendências.
 - **RF-31** **Saldo por policial** e extrato individual.
 - **RF-32** Relatórios com filtros (período, unidade, policial, status) e **exportação CSV/PDF**: extrato por policial, resumo por unidade, pendências de aprovação.
-- **RF-33** Gestão de usuários, unidades, perfis, códigos de ativação e dispositivos.
+- **RF-33** Gestão de usuários, unidades, perfis, senhas e dispositivos.
 - **RF-34** Lançar **estorno** com motivo obrigatório, referenciando o registro original.
 - **RF-35** Consultar o **log de auditoria**.
 - **RF-36** Ver **pendências antigas** (aguardando há mais de N dias, configurável).
@@ -156,7 +156,7 @@ Horas guardadas em **minutos (inteiro)**. Datas e carimbos de tempo em texto ISO
 
 **Aba `Lancamentos`:** id, tipo (HORA_EXTRA, COMPENSACAO, ESTORNO), ref_id, matricula, nome, unidade_id, data, minutos, motivo, criado_por, criado_em, recebido_em, atualizado_em, status (AGUARDANDO_APROVACAO, APROVADO, REJEITADO, CANCELADO), decidido_por, decidido_em, motivo_rejeicao.
 
-**Aba `Usuarios`:** email, nome, matricula, unidade_id, perfis (separados por vírgula), ativo (SIM/NAO), pin_hash, criado_em, ultimo_acesso.
+**Aba `Usuarios`:** email, nome, matricula, unidade_id, perfis (separados por vírgula), ativo (SIM/NAO), senha_hash, criado_em, ultimo_acesso.
 
 **Aba `Dispositivos`:** id, email, token_hash, nome_maquina, ativo, criado_em, ultimo_sync.
 
@@ -188,20 +188,20 @@ Endpoint único `doPost` (e `doGet` apenas como teste de saúde). O Apps Script 
 
 | Ação | Quem usa | Função |
 |---|---|---|
-| `ativar` | Qualquer pessoa com código | Troca e-mail + código por token de dispositivo |
+| `login` | Qualquer pessoa com senha | Troca e-mail + senha por token de dispositivo |
 | `sync` | Todos os perfis | Envia lançamentos pendentes e recebe atualizações, saldo e config |
 | `cancelar` | Autor | Cancela registro aguardando aprovação |
 | `pendencias` | Comandante, Admin | Lista aguardando aprovação (escopo por perfil) |
-| `decidir` | Comandante, Admin | Aprova ou rejeita (exige PIN) |
+| `decidir` | Comandante, Admin | Aprova ou rejeita (exige senha) |
 | `saldo` | Todos | Saldo (escopo por perfil) |
 | `relatorio` | Admin | Dados agregados e filtrados |
 | `estornar` | Admin | Cria estorno |
-| `admin_usuarios` | Admin | Usuários, unidades, códigos, dispositivos |
+| `admin_usuarios` | Admin | Usuários, unidades, senhas, dispositivos |
 | `auditoria` | Admin | Consulta de logs |
 
 **Regras do servidor**
 
-1. Toda chamada (exceto `ativar`) autentica: usuário ativo + token válido + perfil permitido.
+1. Toda chamada (exceto `login`) autentica: usuário ativo + token válido + perfil permitido.
 2. Escritas usam **`LockService`** para evitar corrupção com sincronizações simultâneas.
 3. Envio **idempotente** pelo UUID.
 4. Validações repetidas no servidor; nome e matrícula vêm do cadastro, nunca do app.
@@ -209,18 +209,18 @@ Endpoint único `doPost` (e `doGet` apenas como teste de saúde). O Apps Script 
 6. Ações relevantes gravam na aba `Auditoria`.
 7. `versao_minima` na aba `Config` permite recusar versões antigas do app.
 
-**Códigos de erro:** `NAO_AUTORIZADO`, `USUARIO_INATIVO`, `CODIGO_INVALIDO`, `PIN_INVALIDO`, `VALIDACAO`, `VERSAO_ANTIGA`, `BLOQUEADO`, `OCUPADO`, `ACAO_INVALIDA`, `ERRO_INTERNO`.
+**Códigos de erro:** `NAO_AUTORIZADO`, `USUARIO_INATIVO`, `SENHA_INVALIDA`, `VALIDACAO`, `VERSAO_ANTIGA`, `BLOQUEADO`, `OCUPADO`, `ACAO_INVALIDA`, `ERRO_INTERNO`.
 
 ## 12. Segurança e LGPD
 
 - Nome e matrícula são dados pessoais: coletar só o necessário.
 - Conta Google nova com **verificação em duas etapas**, senha forte, recuperação institucional e **pelo menos dois admins** capazes de recuperá-la.
 - Planilha sem compartilhamento com terceiros.
-- Tokens e códigos só existem como hash no servidor (HMAC com segredo guardado nas propriedades do script).
+- Tokens e senhas só existem como hash no servidor (HMAC com segredo guardado nas propriedades do script).
 - A URL do Web App não é segredo suficiente: o controle é e-mail + token + perfil.
 - **Backup:** cópia diária da planilha em pasta do Drive (cópias de backup antigas rotacionadas após 30 dias; os dados oficiais nunca são descartados).
 - Sem exclusão física: usuários são desativados, registros são estornados ou cancelados.
-- Não gravar PIN, token ou código em logs.
+- Não gravar senha (exceto exibição única na criação), token ou segredos em logs de rotina.
 - Em exportações CSV/PDF, neutralizar textos que comecem com `=`, `+`, `-` ou `@` (injeção de fórmula).
 
 ## 13. Offline e sincronização
@@ -234,9 +234,9 @@ Endpoint único `doPost` (e `doGet` apenas como teste de saúde). O Apps Script 
 
 ## 14. Telas do MVP
 
-**Comuns:** Ativação (e-mail + código), Início com saldo, Sincronização, Ajustes.
+**Comuns:** Login (e-mail + senha), Início com saldo, Sincronização, Ajustes.
 **Policial:** Novo lançamento (hora extra / compensação), Meus registros, Extrato e saldo.
-**Comandante:** Aprovações (lista com lote), Detalhe do registro (aprovar/rejeitar com PIN), Saldos da unidade.
+**Comandante:** Aprovações (lista com lote), Detalhe do registro (aprovar/rejeitar com senha), Saldos da unidade.
 **Admin:** Painel, Relatórios, Saldos, Usuários e unidades, Pendências antigas, Auditoria.
 
 **UX para público não técnico:** textos simples, botões grandes, poucas telas, mensagens claras em português ("Sem internet. Seus registros estão salvos e serão enviados depois"), nenhuma configuração técnica visível.
@@ -254,9 +254,9 @@ Endpoint único `doPost` (e `doGet` apenas como teste de saúde). O Apps Script 
 | Fase | Entrega | Resultado verificável |
 |---|---|---|
 | 0 | Criar conta Google nova (2FA, dois admins), planilha e projeto Apps Script | Ambiente pronto |
-| 1 | **Backend Apps Script**: abas, `ativar`, `sync`, validações, lock, auditoria, backup | Testes manuais com `curl` passando |
-| 2 | **App do policial**: ativação, SQLite, lançamento offline, sync, saldo | Registro criado offline aparece na planilha após sincronizar |
-| 3 | **Comandante**: pendências, aprovação com PIN, rejeição, cancelamento | Aprovação reflete no app do policial |
+| 1 | **Backend Apps Script**: abas, `login`, `sync`, validações, lock, auditoria, backup | Testes manuais com `curl` passando |
+| 2 | **App do policial**: login, SQLite, lançamento offline, sync, saldo | Registro criado offline aparece na planilha após sincronizar |
+| 3 | **Comandante**: pendências, aprovação com senha, rejeição, cancelamento | Aprovação reflete no app do policial |
 | 4 | **Admin**: painel, usuários, saldos, relatórios, estorno, auditoria | Admin cadastra usuário e exporta extrato |
 | 5 | **Piloto** em 2 a 3 unidades por 2 a 4 semanas | Lista de ajustes dos usuários reais |
 | 6 | Implantação nas demais unidades + treinamento curto | 20+ unidades ativas |

@@ -16,7 +16,7 @@
 }
 ```
 
-- `ativar` não exige `token`.
+- `login` não exige `token` (usa `senha` no payload).
 - Demais ações exigem `email` + `token` de dispositivo válido.
 
 ## Respostas
@@ -33,18 +33,17 @@ Erro:
 { "ok": false, "codigo": "VALIDACAO", "mensagem": "…" }
 ```
 
-Códigos: `NAO_AUTORIZADO`, `USUARIO_INATIVO`, `CODIGO_INVALIDO`, `PIN_INVALIDO`, `VALIDACAO`, `VERSAO_ANTIGA`, `BLOQUEADO`, `OCUPADO`, `ACAO_INVALIDA`, `ERRO_INTERNO`.
+Códigos: `NAO_AUTORIZADO`, `USUARIO_INATIVO`, `SENHA_INVALIDA`, `VALIDACAO`, `VERSAO_ANTIGA`, `BLOQUEADO`, `OCUPADO`, `ACAO_INVALIDA`, `ERRO_INTERNO`.
 
 ## Ações
 
 | Ação | Perfis | Payload principal |
 |---|---|---|
-| `ativar` | — | `codigo`, `nome_maquina`, `pin` (se etapa DEFINIR_PIN) |
-| `definir_pin` | COMANDANTE, ADMIN | `pin` (6 dígitos) |
+| `login` | — | `senha`, `nome_maquina` |
 | `sync` | todos | `lancamentos[]`, `cursor` |
 | `cancelar` | autor | `id` |
 | `pendencias` | COMANDANTE, ADMIN | — |
-| `decidir` | COMANDANTE, ADMIN | `ids[]`, `decisao` (`APROVAR`/`REJEITAR`), `pin`, `motivo_rejeicao` |
+| `decidir` | COMANDANTE, ADMIN | `ids[]`, `decisao` (`APROVAR`/`REJEITAR`), `senha`, `motivo_rejeicao` |
 | `saldo` | todos | opcional `matricula` / escopo por perfil |
 | `relatorio` | ADMIN | `tipo`, filtros |
 | `estornar` | ADMIN | `ref_id`, `motivo` |
@@ -67,7 +66,10 @@ Códigos: `NAO_AUTORIZADO`, `USUARIO_INATIVO`, `CODIGO_INVALIDO`, `PIN_INVALIDO`
 
 ### `admin_usuarios.op`
 
-`listar_usuarios`, `listar_unidades`, `listar_dispositivos`, `criar_unidade`, `criar_usuario`, `atualizar_usuario`, `desativar_usuario`, `revogar_dispositivo`, `emitir_codigo`, `redefinir_pin`.
+`listar_usuarios`, `listar_unidades`, `listar_dispositivos`, `criar_unidade`, `criar_usuario`, `atualizar_usuario`, `desativar_usuario`, `revogar_dispositivo`, `redefinir_senha`.
+
+`criar_usuario` devolve `senha_inicial` (texto uma vez).  
+`redefinir_senha` devolve `senha_inicial` (texto uma vez). Senha forte: mín. 8 chars, maiúscula, minúscula, número e especial.
 
 ### `relatorio.tipo`
 

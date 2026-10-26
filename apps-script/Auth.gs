@@ -1,5 +1,5 @@
 /**
- * Autenticação, perfis e PIN.
+ * Autenticação, perfis e senha forte.
  */
 
 function autenticar_(req, perfisPermitidos) {
@@ -89,38 +89,75 @@ function touchDispositivo_(id) {
   });
 }
 
-function validarPin_(usuario, pin) {
-  verificarBloqueio_(usuario.email);
-  var p = String(pin || '').trim();
-  if (!/^\d{6}$/.test(p)) {
-    registrarFalhaAuth_(usuario.email);
-    throw ApiError_(ERROS.PIN_INVALIDO, 'PIN deve ter 6 dígitos.');
+/**
+ * Política de senha forte (todos os perfis):
+ * - mínimo 8 caracteres
+ * - ao menos 1 maiúscula, 1 minúscula, 1 dígito e 1 caractere especial
+ */
+function mensagemRegraSenha_() {
+  return 'A senha deve ter no mínimo 8 caracteres, com letra maiúscula, minúscula, número e caractere especial.';
+}
+
+function validarSenhaForte_(senha) {
+  var s = String(senha || '');
+  if (s.length < CFG.SENHA_MIN) {
+    throw ApiError_(ERROS.VALIDACAO, mensagemRegraSenha_());
   }
-  if (!usuario.pin_hash || usuario.pin_hash !== hmac_('PIN:' + p)) {
+  if (!/[A-Z]/.test(s) || !/[a-z]/.test(s) || !/[0-9]/.test(s) || !/[^A-Za-z0-9]/.test(s)) {
+    throw ApiError_(ERROS.VALIDACAO, mensagemRegraSenha_());
+  }
+}
+
+function hashSenha_(senha) {
+  return hmac_('SENHA:' + String(senha));
+}
+
+function gerarSenhaForte_() {
+  var maiusculas = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  var minusculas = 'abcdefghijkmnopqrstuvwxyz';
+  var digitos = '23456789';
+  var especiais = '!@#$%&*-_=+';
+  var todos = maiusculas + minusculas + digitos + especiais;
+  var chars = [
+    maiusculas.charAt(Math.floor(Math.random() * maiusculas.length)),
+    minusculas.charAt(Math.floor(Math.random() * minusculas.length)),
+    digitos.charAt(Math.floor(Math.random() * digitos.length)),
+    especiais.charAt(Math.floor(Math.random() * especiais.length))
+  ];
+  for (var i = chars.length; i < 12; i++) {
+    chars.push(todos.charAt(Math.floor(Math.random() * todos.length)));
+  }
+  // Embaralha
+  for (var j = chars.length - 1; j > 0; j--) {
+    var k = Math.floor(Math.random() * (j + 1));
+    var tmp = chars[j];
+    chars[j] = chars[k];
+    chars[k] = tmp;
+  }
+  var senha = chars.join('');
+  validarSenhaForte_(senha);
+  return senha;
+}
+
+function gravarSenha_(email, senha) {
+  validarSenhaForte_(senha);
+  atualizarLinhaPorId_(ABAS.USUARIOS, COL.USUARIOS, 'email', normalizarEmail_(email), {
+    senha_hash: hashSenha_(senha)
+  });
+}
+
+function emitirSenhaInicial_(email) {
+  var senha = gerarSenhaForte_();
+  gravarSenha_(email, senha);
+  return senha;
+}
+
+function validarSenhaUsuario_(usuario, senha) {
+  verificarBloqueio_(usuario.email);
+  var s = String(senha || '');
+  if (!usuario.senha_hash || usuario.senha_hash !== hashSenha_(s)) {
     registrarFalhaAuth_(usuario.email);
-    throw ApiError_(ERROS.PIN_INVALIDO, 'PIN inválido.');
+    throw ApiError_(ERROS.SENHA_INVALIDA, 'Senha inválida.');
   }
   limparFalhasAuth_(usuario.email);
-}
-
-function precisaDefinirPin_(usuario) {
-  var perfis = parsePerfis_(usuario.perfis);
-  var sensivel = perfis.indexOf(PERFIS.COMANDANTE) >= 0 || perfis.indexOf(PERFIS.ADMIN) >= 0;
-  return sensivel && !usuario.pin_hash;
-}
-
-function gravarPin_(email, pin) {
-  var p = String(pin || '').trim();
-  if (!/^\d{6}$/.test(p)) {
-    throw ApiError_(ERROS.VALIDACAO, 'PIN deve ter 6 dígitos numéricos.');
-  }
-  atualizarLinhaPorId_(ABAS.USUARIOS, COL.USUARIOS, 'email', normalizarEmail_(email), {
-    pin_hash: hmac_('PIN:' + p)
-  });
-}
-
-function limparPin_(email) {
-  atualizarLinhaPorId_(ABAS.USUARIOS, COL.USUARIOS, 'email', normalizarEmail_(email), {
-    pin_hash: ''
-  });
 }

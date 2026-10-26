@@ -175,10 +175,8 @@ function acaoAdminUsuarios_(req) {
       return adminDesativarUsuario_(auth, p);
     case 'revogar_dispositivo':
       return adminRevogarDispositivo_(auth, p);
-    case 'emitir_codigo':
-      return adminEmitirCodigo_(auth, p);
-    case 'redefinir_pin':
-      return adminRedefinirPin_(auth, p);
+    case 'redefinir_senha':
+      return adminRedefinirSenha_(auth, p);
     default:
       throw ApiError_(ERROS.ACAO_INVALIDA, 'op inválida em admin_usuarios.');
   }
@@ -192,7 +190,7 @@ function sanitizarUsuario_(u) {
     unidade_id: u.unidade_id,
     perfis: parsePerfis_(u.perfis),
     ativo: u.ativo,
-    tem_pin: !!u.pin_hash,
+    tem_senha: !!u.senha_hash,
     criado_em: u.criado_em,
     ultimo_acesso: u.ultimo_acesso
   };
@@ -277,17 +275,16 @@ function adminCriarUsuario_(auth, p) {
     unidade_id: unidadeId,
     perfis: perfis.join(','),
     ativo: 'SIM',
-    pin_hash: '',
+    senha_hash: '',
     criado_em: agoraIso_(),
     ultimo_acesso: ''
   });
 
-  var codigo = emitirCodigoAtivacao_(email);
+  var senhaInicial = emitirSenhaInicial_(email);
   auditar_(auth.email, auth.usuario.unidade_id, 'CRIAR_USUARIO', email, 'OK');
   return {
     usuario: sanitizarUsuario_(buscarUsuario_(email)),
-    codigo_ativacao: codigo.codigo,
-    expira_em: codigo.expira_em
+    senha_inicial: senhaInicial
   };
 }
 
@@ -375,21 +372,18 @@ function adminRevogarDispositivo_(auth, p) {
   return { dispositivo_id: id, ativo: 'NAO' };
 }
 
-function adminEmitirCodigo_(auth, p) {
-  var email = normalizarEmail_(p.email);
-  var out = emitirCodigoAtivacao_(email);
-  auditar_(auth.email, auth.usuario.unidade_id, 'EMITIR_CODIGO', email, 'OK');
-  return out;
-}
-
-function adminRedefinirPin_(auth, p) {
+function adminRedefinirSenha_(auth, p) {
   var email = normalizarEmail_(p.email);
   if (!buscarUsuario_(email)) {
     throw ApiError_(ERROS.VALIDACAO, 'Usuário não encontrado.');
   }
-  limparPin_(email);
-  auditar_(auth.email, auth.usuario.unidade_id, 'REDEFINIR_PIN', email, 'OK');
-  return { email: email, mensagem: 'PIN removido. O usuário deve definir um novo na próxima ativação ou via definir_pin.' };
+  var senha = emitirSenhaInicial_(email);
+  auditar_(auth.email, auth.usuario.unidade_id, 'REDEFINIR_SENHA', email, 'OK');
+  return {
+    email: email,
+    senha_inicial: senha,
+    mensagem: 'Nova senha gerada. Entregue ao usuário — ela não fica legível na planilha.'
+  };
 }
 
 function acaoAuditoria_(req) {

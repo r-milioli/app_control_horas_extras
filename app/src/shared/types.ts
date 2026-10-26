@@ -60,13 +60,10 @@ export interface ApiSuccessBody<T = unknown> {
 
 export type ApiResponse<T = unknown> = ApiSuccessBody<T> | ApiErrorBody
 
-export interface AtivarResult {
-  etapa: 'DEFINIR_PIN' | 'CONCLUIDO'
-  mensagem?: string
-  email?: string
-  token?: string
-  dispositivo_id?: string
-  usuario?: {
+export interface LoginResult {
+  token: string
+  dispositivo_id: string
+  usuario: {
     email: string
     nome: string
     matricula: string
@@ -129,7 +126,7 @@ export interface AdminUsuario {
   unidade_id: string
   perfis: string[]
   ativo: string
-  tem_pin: boolean
+  tem_senha: boolean
   criado_em: string
   ultimo_acesso: string
 }

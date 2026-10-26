@@ -11,14 +11,11 @@ import type {
 export interface ElectronAPI {
   getState: () => Promise<AppState>
   health: () => Promise<HealthResult>
-  ativar: (payload: {
+  login: (payload: {
     email: string
-    codigo: string
-    pin?: string
+    senha: string
   }) => Promise<
-    | { ok: true; etapa: 'DEFINIR_PIN'; mensagem?: string; email?: string }
-    | { ok: true; etapa: 'CONCLUIDO'; usuario: UsuarioCache }
-    | { ok: false; codigo: string; mensagem: string }
+    { ok: true; usuario: UsuarioCache } | { ok: false; codigo: string; mensagem: string }
   >
   logout: () => Promise<{ ok: boolean }>
   listarLancamentos: () => Promise<LancamentoLocal[]>
@@ -66,18 +63,18 @@ export interface ElectronAPI {
     | {
         ok: true
         usuario: import('../shared/types').AdminUsuario
-        codigo_ativacao: string
-        expira_em: string
+        senha_inicial: string
       }
     | { ok: false; mensagem: string }
   >
   adminCriarUnidade: (
     input: CriarUnidadeInput
   ) => Promise<{ ok: true; id: string; nome: string } | { ok: false; mensagem: string }>
-  adminEmitirCodigo: (
+  adminRedefinirSenha: (
     email: string
   ) => Promise<
-    { ok: true; email: string; codigo: string; expira_em: string } | { ok: false; mensagem: string }
+    | { ok: true; email: string; senha_inicial: string; mensagem?: string }
+    | { ok: false; mensagem: string }
   >
   adminAtualizarUsuario: (input: {
     email: string

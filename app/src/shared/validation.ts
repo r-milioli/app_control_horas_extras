@@ -78,12 +78,28 @@ export function rotuloTipo(tipo: string): string {
   }
 }
 
+/** Política de senha forte (espelha o backend). */
+export const SENHA_MIN = 8
+
+export function validarSenhaForte(senha: string): string | null {
+  const s = senha || ''
+  if (
+    s.length < SENHA_MIN ||
+    !/[A-Z]/.test(s) ||
+    !/[a-z]/.test(s) ||
+    !/[0-9]/.test(s) ||
+    !/[^A-Za-z0-9]/.test(s)
+  ) {
+    return `A senha deve ter no mínimo ${SENHA_MIN} caracteres, com letra maiúscula, minúscula, número e caractere especial.`
+  }
+  return null
+}
+
 export function mensagemErroApi(codigo: string, mensagem: string): string {
   const map: Record<string, string> = {
     NAO_AUTORIZADO: 'Acesso não autorizado. Ative o dispositivo novamente.',
     USUARIO_INATIVO: 'Seu usuário está inativo. Fale com o administrador.',
-    CODIGO_INVALIDO: 'Código ou e-mail inválido.',
-    PIN_INVALIDO: 'PIN inválido.',
+    SENHA_INVALIDA: 'E-mail ou senha inválidos.',
     VALIDACAO: 'Dados inválidos.',
     VERSAO_ANTIGA: 'Esta versão do app está desatualizada. Atualize para continuar.',
     BLOQUEADO: 'Muitas tentativas. Aguarde alguns minutos e tente de novo.',

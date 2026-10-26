@@ -57,11 +57,6 @@ function bytesToHex_(bytes) {
   }).join('');
 }
 
-function gerarCodigoAtivacao_() {
-  var n = Math.floor(Math.random() * 1000000);
-  return ('000000' + n).slice(-6);
-}
-
 function gerarTokenDispositivo_() {
   return Utilities.base64EncodeWebSafe(Utilities.getUuid() + ':' + uuid_() + ':' + Date.now());
 }
