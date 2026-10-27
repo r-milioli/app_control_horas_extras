@@ -6,6 +6,7 @@ import MeusRegistros from './pages/MeusRegistros'
 import MeuPerfil from './pages/MeuPerfil'
 import AdminUsuarios from './pages/AdminUsuarios'
 import ModalNovoLancamento from './components/ModalNovoLancamento'
+import ConfirmDialog from './components/ConfirmDialog'
 import {
   IconLogout,
   IconOverview,
@@ -32,6 +33,8 @@ export default function App() {
   const [syncing, setSyncing] = useState(false)
   const [toast, setToast] = useState('')
   const [modalNovo, setModalNovo] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
+  const [logoutBusy, setLogoutBusy] = useState(false)
   const [dark, setDark] = useState(() => {
     try {
       return localStorage.getItem(THEME_KEY) === 'dark'
@@ -105,17 +108,19 @@ export default function App() {
     }
   }
 
-  async function handleLogout() {
-    const ok = window.confirm(
-      'Sair da conta?\n\nVocê poderá entrar de novo com e-mail e senha. Outro usuário também poderá se logar neste computador.'
-    )
-    if (!ok) return
-    await window.api.logout()
-    setLancamentos([])
-    setPage('home')
-    setModalNovo(false)
-    notify('Você saiu da conta.')
-    await refresh()
+  async function confirmarLogout() {
+    setLogoutBusy(true)
+    try {
+      await window.api.logout()
+      setLancamentos([])
+      setPage('home')
+      setModalNovo(false)
+      setConfirmLogout(false)
+      notify('Você saiu da conta.')
+      await refresh()
+    } finally {
+      setLogoutBusy(false)
+    }
   }
 
   if (booting || !state) {
@@ -211,7 +216,7 @@ export default function App() {
               <small>{rotuloPerfil(perfilAtivo)}</small>
             </div>
           </div>
-          <button type="button" className="logout-btn" onClick={() => void handleLogout()}>
+          <button type="button" className="logout-btn" onClick={() => setConfirmLogout(true)}>
             <IconLogout />
             <span>Sair</span>
           </button>
@@ -305,6 +310,21 @@ export default function App() {
         onSaved={() => {
           void refresh().then(() => setPage('registros'))
         }}
+      />
+
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Sair da conta?"
+        message={
+          'Você poderá entrar de novo com e-mail e senha.\nOutro usuário também poderá se logar neste computador.'
+        }
+        confirmLabel="Sair"
+        cancelLabel="Cancelar"
+        busy={logoutBusy}
+        onCancel={() => {
+          if (!logoutBusy) setConfirmLogout(false)
+        }}
+        onConfirm={() => void confirmarLogout()}
       />
 
       {toast && <div className="toast">{toast}</div>}
