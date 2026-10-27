@@ -95,8 +95,11 @@ function listarMudancasParaUsuario_(usuario, cursor) {
   var filtrados = todos.filter(function (l) {
     if (cursor && l.atualizado_em <= cursor) return false;
     if (isAdmin) return true;
-    if (isCmd && l.unidade_id === usuario.unidade_id) return true;
-    return l.matricula === usuario.matricula || l.criado_por === usuario.email;
+    if (isCmd && String(l.unidade_id || '').trim().toUpperCase() === String(usuario.unidade_id || '').trim().toUpperCase()) {
+      return true;
+    }
+    return l.matricula === usuario.matricula ||
+      normalizarEmail_(l.criado_por) === normalizarEmail_(usuario.email);
   });
 
   filtrados.sort(function (a, b) {

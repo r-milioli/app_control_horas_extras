@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid'
 let db: SqlJsDatabase | null = null
 let dbPath = ''
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 
 function persist(): void {
   if (!db || !dbPath) return
@@ -92,12 +92,38 @@ function migrate(database: SqlJsDatabase): void {
   `)
 
   const check = database.exec(`SELECT valor FROM meta WHERE chave = 'schema_version'`)
-  if (!check.length || !check[0].values.length) {
-    database.run(`INSERT INTO meta (chave, valor) VALUES (?, ?)`, [
-      'schema_version',
-      String(SCHEMA_VERSION)
-    ])
+  let version = 0
+  if (check.length && check[0].values.length) {
+    version = Number(check[0].values[0][0]) || 0
+  } else {
+    database.run(`INSERT INTO meta (chave, valor) VALUES (?, ?)`, ['schema_version', '0'])
   }
+
+  if (version < 2) {
+    const cols = database.exec(`PRAGMA table_info(lancamentos)`)
+    const names = new Set(
+      (cols[0]?.values || []).map((row) => String(row[1] || ''))
+    )
+    if (!names.has('nome')) database.run(`ALTER TABLE lancamentos ADD COLUMN nome TEXT NOT NULL DEFAULT ''`)
+    if (!names.has('matricula')) {
+      database.run(`ALTER TABLE lancamentos ADD COLUMN matricula TEXT NOT NULL DEFAULT ''`)
+    }
+    if (!names.has('unidade_id')) {
+      database.run(`ALTER TABLE lancamentos ADD COLUMN unidade_id TEXT NOT NULL DEFAULT ''`)
+    }
+    if (!names.has('criado_por')) {
+      database.run(`ALTER TABLE lancamentos ADD COLUMN criado_por TEXT NOT NULL DEFAULT ''`)
+    }
+    // Rebaixa o cursor para a próxima sync trazer de novo os campos de autor/unidade
+    database.run(
+      `INSERT OR REPLACE INTO config_cache (chave, valor) VALUES ('cursor', '')`
+    )
+  }
+
+  database.run(`INSERT OR REPLACE INTO meta (chave, valor) VALUES (?, ?)`, [
+    'schema_version',
+    String(SCHEMA_VERSION)
+  ])
 }
 
 export function closeDb(): void {
@@ -224,7 +250,11 @@ function rowToLancamento(r: Record<string, unknown>): LancamentoLocal {
     atualizado_em: String(r.atualizado_em || ''),
     motivo_rejeicao: String(r.motivo_rejeicao || ''),
     decidido_por: String(r.decidido_por || ''),
-    decidido_em: String(r.decidido_em || '')
+    decidido_em: String(r.decidido_em || ''),
+    nome: String(r.nome || ''),
+    matricula: String(r.matricula || ''),
+    unidade_id: String(r.unidade_id || ''),
+    criado_por: String(r.criado_por || '')
   }
 }
 
@@ -252,6 +282,7 @@ export function criarLancamento(input: NovoLancamentoInput): LancamentoLocal {
   const errMotivo = validarMotivo(input.motivo)
   if (errMotivo) throw new Error(errMotivo)
 
+  const usuario = lerUsuarioCache()
   const agora = new Date().toISOString()
   const item: LancamentoLocal = {
     id: uuidv4(),
@@ -266,13 +297,17 @@ export function criarLancamento(input: NovoLancamentoInput): LancamentoLocal {
     atualizado_em: agora,
     motivo_rejeicao: '',
     decidido_por: '',
-    decidido_em: ''
+    decidido_em: '',
+    nome: usuario?.nome || '',
+    matricula: usuario?.matricula || '',
+    unidade_id: usuario?.unidade_id || '',
+    criado_por: (usuario?.email || '').trim().toLowerCase()
   }
 
   run(
     `INSERT INTO lancamentos
-     (id, tipo, data, minutos, motivo, status, criado_em, ref_id, recebido_em, atualizado_em, motivo_rejeicao, decidido_por, decidido_em)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, tipo, data, minutos, motivo, status, criado_em, ref_id, recebido_em, atualizado_em, motivo_rejeicao, decidido_por, decidido_em, nome, matricula, unidade_id, criado_por)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       item.id,
       item.tipo,
@@ -286,7 +321,11 @@ export function criarLancamento(input: NovoLancamentoInput): LancamentoLocal {
       item.atualizado_em,
       item.motivo_rejeicao,
       item.decidido_por,
-      item.decidido_em
+      item.decidido_em,
+      item.nome,
+      item.matricula,
+      item.unidade_id,
+      item.criado_por
     ]
   )
 
@@ -346,7 +385,11 @@ export function upsertMudancaServidor(m: Record<string, string>): void {
     atualizado_em: m.atualizado_em || new Date().toISOString(),
     motivo_rejeicao: m.motivo_rejeicao || '',
     decidido_por: m.decidido_por || '',
-    decidido_em: m.decidido_em || ''
+    decidido_em: m.decidido_em || '',
+    nome: m.nome || '',
+    matricula: m.matricula || '',
+    unidade_id: String(m.unidade_id || '').trim(),
+    criado_por: String(m.criado_por || '').trim().toLowerCase()
   }
 
   if (existente) {
@@ -354,7 +397,8 @@ export function upsertMudancaServidor(m: Record<string, string>): void {
       `UPDATE lancamentos SET
         tipo=?, data=?, minutos=?, motivo=?, status=?,
         ref_id=?, recebido_em=?, atualizado_em=?,
-        motivo_rejeicao=?, decidido_por=?, decidido_em=?
+        motivo_rejeicao=?, decidido_por=?, decidido_em=?,
+        nome=?, matricula=?, unidade_id=?, criado_por=?
        WHERE id=?`,
       [
         item.tipo,
@@ -368,14 +412,18 @@ export function upsertMudancaServidor(m: Record<string, string>): void {
         item.motivo_rejeicao,
         item.decidido_por,
         item.decidido_em,
+        item.nome,
+        item.matricula,
+        item.unidade_id,
+        item.criado_por,
         item.id
       ]
     )
   } else {
     run(
       `INSERT INTO lancamentos
-       (id, tipo, data, minutos, motivo, status, criado_em, ref_id, recebido_em, atualizado_em, motivo_rejeicao, decidido_por, decidido_em)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, tipo, data, minutos, motivo, status, criado_em, ref_id, recebido_em, atualizado_em, motivo_rejeicao, decidido_por, decidido_em, nome, matricula, unidade_id, criado_por)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         item.id,
         item.tipo,
@@ -389,7 +437,11 @@ export function upsertMudancaServidor(m: Record<string, string>): void {
         item.atualizado_em,
         item.motivo_rejeicao,
         item.decidido_por,
-        item.decidido_em
+        item.decidido_em,
+        item.nome,
+        item.matricula,
+        item.unidade_id,
+        item.criado_por
       ]
     )
   }

@@ -1138,10 +1138,141 @@ body.dark .modal-foot {
   white-space: normal;
 }
 
+.motivo-obs {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: normal;
+}
+
 .row-actions {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.subtabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--sky2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.subtabs button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 700 12px Manrope, sans-serif;
+  padding: 9px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subtabs button:hover {
+  color: var(--ink);
+}
+
+.subtabs button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 4px #16395d12;
+}
+
+.subtab-count {
+  background: #e4b957;
+  color: #17385f;
+  border-radius: 20px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.alert-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  text-align: left;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #e4c47a;
+  background: var(--amber-bg);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+}
+
+.alert-banner strong {
+  font: 800 13px Manrope, sans-serif;
+}
+
+.alert-banner span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue2);
+}
+
+.alert-banner:hover span {
+  text-decoration: underline;
+}
+
+.inline-warn {
+  margin: 0 21px 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--amber-bg);
+  border: 1px solid #e4c47a;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.cell-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.row-alerta td {
+  background: color-mix(in srgb, var(--amber-bg) 70%, transparent);
+}
+
+.decidir-resumo {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--sky2);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.decidir-resumo strong {
+  font-weight: 800;
+}
+
+.decidir-motivo {
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.form-error {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 body.dark {

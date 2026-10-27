@@ -36,6 +36,11 @@ export interface LancamentoLocal {
   motivo_rejeicao: string
   decidido_por: string
   decidido_em: string
+  /** Preenchido no create local e nas mudanças do servidor. */
+  nome?: string
+  matricula?: string
+  unidade_id?: string
+  criado_por?: string
 }
 
 export interface NovoLancamentoInput {
@@ -150,4 +155,34 @@ export interface CriarUnidadeInput {
   id: string
   nome: string
   comandante_email?: string
+}
+
+/** Lançamento aguardando decisão (resposta de `pendencias`). */
+export interface PendenciaAprovacao {
+  id: string
+  tipo: TipoLancamento
+  ref_id: string
+  matricula: string
+  nome: string
+  unidade_id: string
+  data: string
+  minutos: number
+  minutos_legivel?: string
+  motivo: string
+  criado_por: string
+  criado_em: string
+  recebido_em: string
+  atualizado_em: string
+  status: string
+  antiga?: boolean
+}
+
+export type DecisaoAprovacao = 'APROVAR' | 'REJEITAR'
+
+export interface DecidirResultado {
+  id: string
+  ok: boolean
+  status?: string
+  codigo?: string
+  mensagem?: string
 }

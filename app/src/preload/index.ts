@@ -79,7 +79,9 @@ const api: ElectronAPI = {
     return { ok: true as const, unidade: res.dados.unidade as never }
   },
   atualizarPerfil: (input) => ipcRenderer.invoke('perfil:atualizar', input),
-  alterarSenha: (input) => ipcRenderer.invoke('perfil:alterarSenha', input)
+  alterarSenha: (input) => ipcRenderer.invoke('perfil:alterarSenha', input),
+  listarPendencias: () => ipcRenderer.invoke('aprovacoes:pendencias'),
+  decidirPendencias: (input) => ipcRenderer.invoke('aprovacoes:decidir', input)
 }
 
 contextBridge.exposeInMainWorld('api', api)

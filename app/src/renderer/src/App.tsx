@@ -150,6 +150,7 @@ export default function App() {
 
   const u = state.usuario
   const isAdmin = perfis.includes('ADMIN')
+  const podeAprovar = perfis.includes('COMANDANTE') || perfis.includes('ADMIN')
   const abrirNovo = () => setModalNovo(true)
 
   return (
@@ -284,6 +285,9 @@ export default function App() {
             <MeusRegistros
               itens={lancamentos}
               online={state.online}
+              podeAprovar={podeAprovar}
+              emailUsuario={u?.email || ''}
+              unidadeId={u?.unidade_id || ''}
               notify={notify}
               onRefresh={() => void refresh()}
               onNovo={abrirNovo}

@@ -2,10 +2,14 @@
  * Pendências e decisão (aprovar / rejeitar) com senha.
  */
 
+function mesmaUnidade_(a, b) {
+  return String(a || '').trim().toUpperCase() === String(b || '').trim().toUpperCase();
+}
+
 function acaoPendencias_(req) {
   var auth = autenticar_(req, [PERFIS.COMANDANTE, PERFIS.ADMIN]);
   var todos = lerAba_(ABAS.LANCAMENTOS, COL.LANCAMENTOS).filter(function (l) {
-    return l.status === STATUS.AGUARDANDO;
+    return String(l.status || '').trim() === STATUS.AGUARDANDO;
   });
 
   var lista;
@@ -17,12 +21,12 @@ function acaoPendencias_(req) {
   } else if (temPerfil_(auth.usuario, PERFIS.ADMIN)) {
     // Admin que também é comandante: vê unidade + casos especiais
     lista = todos.filter(function (l) {
-      return l.unidade_id === auth.usuario.unidade_id || podeAdminDecidir_(l);
+      return mesmaUnidade_(l.unidade_id, auth.usuario.unidade_id) || podeAdminDecidir_(l);
     });
   } else {
     // Comandante: só a própria unidade, e nunca os próprios lançamentos
     lista = todos.filter(function (l) {
-      return l.unidade_id === auth.usuario.unidade_id &&
+      return mesmaUnidade_(l.unidade_id, auth.usuario.unidade_id) &&
         normalizarEmail_(l.criado_por) !== auth.email;
     });
   }
@@ -43,7 +47,8 @@ function acaoPendencias_(req) {
         minutos_legivel: formatarHoras_(Number(l.minutos) || 0)
       });
     }),
-    dias_alerta_pendencia: diasAlerta
+    dias_alerta_pendencia: diasAlerta,
+    total: lista.length
   };
 }
 
@@ -58,7 +63,9 @@ function acaoDecidir_(req) {
   var payload = req.payload || {};
   var ids = Array.isArray(payload.ids) ? payload.ids : (payload.id ? [payload.id] : []);
   var decisao = String(payload.decisao || '').toUpperCase();
-  var motivoRejeicao = String(payload.motivo_rejeicao || '').trim();
+  var motivoDecisao = String(
+    payload.motivo_decisao || payload.motivo_rejeicao || payload.motivo || ''
+  ).trim();
 
   if (!ids.length) {
     throw ApiError_(ERROS.VALIDACAO, 'Informe id ou ids dos lançamentos.');
@@ -67,19 +74,22 @@ function acaoDecidir_(req) {
     throw ApiError_(ERROS.VALIDACAO, 'decisao deve ser APROVAR ou REJEITAR.');
   }
   if (decisao === 'REJEITAR') {
-    validarMotivo_(motivoRejeicao);
+    validarMotivo_(motivoDecisao);
+  } else if (motivoDecisao) {
+    // Observação opcional na aprovação (mesmas regras de tamanho se preenchida)
+    validarMotivo_(motivoDecisao);
   }
 
   validarSenhaUsuario_(auth.usuario, payload.senha);
 
   var resultados = [];
   for (var i = 0; i < ids.length; i++) {
-    resultados.push(decidirUm_(auth, String(ids[i]), decisao, motivoRejeicao));
+    resultados.push(decidirUm_(auth, String(ids[i]), decisao, motivoDecisao));
   }
   return { resultados: resultados };
 }
 
-function decidirUm_(auth, id, decisao, motivoRejeicao) {
+function decidirUm_(auth, id, decisao, motivoDecisao) {
   var hit = encontrarLinha_(ABAS.LANCAMENTOS, COL.LANCAMENTOS, function (l) {
     return l.id === id;
   });
@@ -88,7 +98,7 @@ function decidirUm_(auth, id, decisao, motivoRejeicao) {
   }
   var l = hit.row;
 
-  if (l.status !== STATUS.AGUARDANDO) {
+  if (String(l.status || '').trim() !== STATUS.AGUARDANDO) {
     return { id: id, ok: false, codigo: ERROS.VALIDACAO, mensagem: 'Registro não está aguardando aprovação.' };
   }
   if (normalizarEmail_(l.criado_por) === auth.email) {
@@ -97,7 +107,7 @@ function decidirUm_(auth, id, decisao, motivoRejeicao) {
 
   var permitido = false;
   if (temPerfil_(auth.usuario, PERFIS.COMANDANTE) &&
-      l.unidade_id === auth.usuario.unidade_id &&
+      mesmaUnidade_(l.unidade_id, auth.usuario.unidade_id) &&
       !podeAdminDecidir_(l)) {
     permitido = true;
   }
@@ -107,7 +117,7 @@ function decidirUm_(auth, id, decisao, motivoRejeicao) {
   // Admin também pode cobrir unidade se for comandante da unidade
   if (temPerfil_(auth.usuario, PERFIS.ADMIN) &&
       temPerfil_(auth.usuario, PERFIS.COMANDANTE) &&
-      l.unidade_id === auth.usuario.unidade_id) {
+      mesmaUnidade_(l.unidade_id, auth.usuario.unidade_id)) {
     permitido = true;
   }
 
@@ -122,7 +132,8 @@ function decidirUm_(auth, id, decisao, motivoRejeicao) {
     decidido_por: auth.email,
     decidido_em: agora,
     atualizado_em: agora,
-    motivo_rejeicao: decisao === 'REJEITAR' ? motivoRejeicao : ''
+    // Coluna existente: guarda motivo da rejeição ou observação da aprovação
+    motivo_rejeicao: motivoDecisao || ''
   });
 
   auditar_(auth.email, auth.usuario.unidade_id, decisao === 'APROVAR' ? 'APROVAR' : 'REJEITAR', id, 'OK');

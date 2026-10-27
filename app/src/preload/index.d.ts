@@ -2,9 +2,12 @@ import type {
   AppState,
   CriarUnidadeInput,
   CriarUsuarioInput,
+  DecidirResultado,
+  DecisaoAprovacao,
   HealthResult,
   LancamentoLocal,
   NovoLancamentoInput,
+  PendenciaAprovacao,
   UsuarioCache
 } from '../shared/types'
 
@@ -101,6 +104,22 @@ export interface ElectronAPI {
     senha_atual: string
     senha_nova: string
   }) => Promise<{ ok: true; mensagem?: string } | { ok: false; mensagem: string }>
+  listarPendencias: () => Promise<
+    | {
+        ok: true
+        pendencias: PendenciaAprovacao[]
+        dias_alerta_pendencia: number
+      }
+    | { ok: false; mensagem: string }
+  >
+  decidirPendencias: (input: {
+    ids: string[]
+    decisao: DecisaoAprovacao
+    senha: string
+    motivo_rejeicao?: string
+  }) => Promise<
+    { ok: true; resultados: DecidirResultado[] } | { ok: false; mensagem: string }
+  >
 }
 
 declare global {

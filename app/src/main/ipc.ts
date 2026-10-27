@@ -65,7 +65,7 @@ export function registerIpc(): void {
           email: dados.usuario.email,
           nome: dados.usuario.nome,
           matricula: dados.usuario.matricula,
-          unidade_id: dados.usuario.unidade_id,
+          unidade_id: String(dados.usuario.unidade_id || '').trim(),
           perfis: (dados.usuario.perfis || []).join(','),
           saldo_minutos: 0,
           saldo_legivel: formatarHoras(0),
@@ -269,6 +269,97 @@ export function registerIpc(): void {
         return {
           ok: false as const,
           mensagem: err instanceof Error ? err.message : 'Não foi possível alterar a senha.'
+        }
+      }
+    }
+  )
+
+  ipcMain.handle('aprovacoes:pendencias', async () => {
+    const creds = lerCredenciais()
+    if (!creds) {
+      return { ok: false as const, mensagem: 'Dispositivo não ativado.' }
+    }
+    try {
+      const dados = await apiPost<{
+        pendencias?: Array<Record<string, unknown>>
+        dias_alerta_pendencia?: number
+      }>('pendencias', creds.email, creds.token, {})
+      const raw = Array.isArray(dados.pendencias) ? dados.pendencias : []
+      const pendencias = raw.map((p) => ({
+        id: String(p.id || ''),
+        tipo: String(p.tipo || '') as 'HORA_EXTRA' | 'COMPENSACAO' | 'ESTORNO',
+        ref_id: String(p.ref_id || ''),
+        matricula: String(p.matricula || ''),
+        nome: String(p.nome || ''),
+        unidade_id: String(p.unidade_id || ''),
+        data: String(p.data || ''),
+        minutos: Number(p.minutos) || 0,
+        minutos_legivel: p.minutos_legivel ? String(p.minutos_legivel) : undefined,
+        motivo: String(p.motivo || ''),
+        criado_por: String(p.criado_por || ''),
+        criado_em: String(p.criado_em || ''),
+        recebido_em: String(p.recebido_em || ''),
+        atualizado_em: String(p.atualizado_em || ''),
+        status: String(p.status || ''),
+        antiga: Boolean(p.antiga)
+      }))
+      return {
+        ok: true as const,
+        pendencias,
+        dias_alerta_pendencia: Number(dados.dias_alerta_pendencia) || 7
+      }
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        return { ok: false as const, mensagem: mensagemErroApi(err.codigo, err.message) }
+      }
+      return {
+        ok: false as const,
+        mensagem: err instanceof Error ? err.message : 'Falha ao carregar pendências.'
+      }
+    }
+  })
+
+  ipcMain.handle(
+    'aprovacoes:decidir',
+    async (
+      _e,
+      payload: {
+        ids: string[]
+        decisao: 'APROVAR' | 'REJEITAR'
+        senha: string
+        motivo_rejeicao?: string
+      }
+    ) => {
+      const creds = lerCredenciais()
+      if (!creds) {
+        return { ok: false as const, mensagem: 'Dispositivo não ativado.' }
+      }
+      try {
+        const dados = await apiPost<{
+          resultados?: Array<{
+            id: string
+            ok: boolean
+            status?: string
+            codigo?: string
+            mensagem?: string
+          }>
+        }>('decidir', creds.email, creds.token, {
+          ids: payload.ids,
+          decisao: payload.decisao,
+          senha: payload.senha,
+          motivo_rejeicao: payload.motivo_rejeicao || ''
+        })
+        return {
+          ok: true as const,
+          resultados: Array.isArray(dados.resultados) ? dados.resultados : []
+        }
+      } catch (err) {
+        if (err instanceof ApiClientError) {
+          return { ok: false as const, mensagem: mensagemErroApi(err.codigo, err.message) }
+        }
+        return {
+          ok: false as const,
+          mensagem: err instanceof Error ? err.message : 'Falha ao registrar a decisão.'
         }
       }
     }
